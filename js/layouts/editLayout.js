@@ -1008,209 +1008,340 @@ async function renderObject({
 // ARRAY
 // ==================================================
 
+// async function renderArray({
+
+//     container,
+
+//     value = [],
+
+//     field,
+
+//     schema,
+
+//     context
+
+// }){
+
+//     const wrapper =
+//         document.createElement("div");
+
+//     wrapper.className =
+//         "detail-array";
+
+//     container.appendChild(
+//         wrapper
+//     );
+
+// //--------------------------------------------------
+// // ADD ITEM
+// //--------------------------------------------------
+
+// const addButton =
+//     document.createElement("button");
+
+// addButton.className =
+//     "detail-button detail-button-add";
+
+// addButton.innerText =
+//     "➕ Agregar";
+
+// addButton.onclick = () => {
+
+//     value.push(
+//         createEmptyRecord(
+//             field.fields || []
+//         )
+//     );
+
+//     render({
+
+//         container:
+//             context.__editContainer,
+
+//         context,
+
+//         dataset:
+//             context.currentDataset,
+
+//         schema:
+//             context.__editSchema
+
+//     });
+
+// };
+
+// wrapper.appendChild(
+//     addButton
+// );
+
+//     if(!Array.isArray(value)){
+
+//         renderEmpty(
+//             wrapper,
+//             "Sin elementos"
+//         );
+
+//         return;
+
+//     }
+
+//     //--------------------------------------------------
+//     // ITEMS
+//     //--------------------------------------------------
+
+//     for(let i = 0; i < value.length; i++){
+
+//         const item =
+//             value[i];
+
+//         const card =
+//             document.createElement("div");
+
+//         card.className =
+//             "detail-array-item";
+
+//         wrapper.appendChild(
+//             card
+//         );
+
+//         const removeButton =
+//         document.createElement("button");
+    
+//     removeButton.className =
+//         "detail-button detail-button-delete";
+    
+//     removeButton.innerText =
+//         "🗑 Eliminar";
+    
+//     removeButton.onclick = () => {
+    
+//         value.splice(
+//             i,
+//             1
+//         );
+    
+//         render({
+    
+//             container:
+//                 context.__editContainer,
+    
+//             context,
+    
+//             dataset:
+//                 context.currentDataset,
+    
+//             schema:
+//                 context.__editSchema
+    
+//         });
+    
+//     };
+    
+//     card.appendChild(
+//         removeButton
+//     );
+
+//         //--------------------------------------------------
+//         // PREVIEW MEDIA
+//         //--------------------------------------------------
+
+//         if(
+//             item?.tipos_media === "image" &&
+//             item?.source?.file &&
+//             item?.source?.path
+//         ){
+
+//             const img =
+//                 document.createElement("img");
+
+//             img.src =
+//                 `${item.source.path}/${item.source.file}`;
+
+//             img.style.maxWidth =
+//                 "200px";
+
+//             img.style.maxHeight =
+//                 "150px";
+
+//             img.style.display =
+//                 "block";
+
+//             img.style.marginBottom =
+//                 "12px";
+
+//             img.style.border =
+//                 "1px solid #ccc";
+
+//             card.appendChild(
+//                 img
+//             );
+//         }
+
+//         //--------------------------------------------------
+//         // CAMPOS
+//         //--------------------------------------------------
+
+//         const fields =
+
+//             Array.isArray(field.fields)
+
+//                 ? field.fields
+
+//                 : [];
+
+//         for(const childField of fields){
+
+//             await renderField({
+
+//                 container : card,
+
+//                 record    : item,
+
+//                 field     : childField,
+
+//                 schema,
+
+//                 context
+
+//             });
+
+//         }
+
+//     }
+
+// }
+// ==================================================
+// ARRAY (Hereda la visualización de detailLayout)
+// ==================================================
+
+// ==================================================
+// RENDER ARRAY (Edit Mode)
+// ==================================================
+
 async function renderArray({
-
     container,
-
     value = [],
-
     field,
-
     schema,
-
     context
+}) {
+    const wrapper = document.createElement("div");
 
-}){
+    // Detectar si la UI es una cuadrícula de medios o una lista
+    const isMediaGrid = field.ui === "media-grid" || field.fields?.some(f => f.campo === "tipos_media");
+    const isAudioList = field.ui === "audio-list" || field.fields?.some(f => f.campo === "audio");
 
-    const wrapper =
-        document.createElement("div");
-
-    wrapper.className =
-        "detail-array";
-
-    container.appendChild(
-        wrapper
-    );
-
-//--------------------------------------------------
-// ADD ITEM
-//--------------------------------------------------
-
-const addButton =
-    document.createElement("button");
-
-addButton.className =
-    "detail-button detail-button-add";
-
-addButton.innerText =
-    "➕ Agregar";
-
-addButton.onclick = () => {
-
-    value.push(
-        createEmptyRecord(
-            field.fields || []
-        )
-    );
-
-    render({
-
-        container:
-            context.__editContainer,
-
-        context,
-
-        dataset:
-            context.currentDataset,
-
-        schema:
-            context.__editSchema
-
-    });
-
-};
-
-wrapper.appendChild(
-    addButton
-);
-
-    if(!Array.isArray(value)){
-
-        renderEmpty(
-            wrapper,
-            "Sin elementos"
-        );
-
-        return;
-
+    if (isMediaGrid) {
+        wrapper.className = "detail-media-grid";
+    } else if (isAudioList) {
+        wrapper.className = "detail-audio-list";
+    } else {
+        wrapper.className = "detail-array";
     }
 
-    //--------------------------------------------------
-    // ITEMS
-    //--------------------------------------------------
+    container.appendChild(wrapper);
 
-    for(let i = 0; i < value.length; i++){
+    // --------------------------------------------------
+    // BOTÓN AGREGAR
+    // --------------------------------------------------
+    const addButton = document.createElement("button");
+    addButton.className = "detail-button detail-button-add";
+    addButton.type = "button";
+    addButton.innerText = "➕ Agregar";
+    addButton.style.gridColumn = "1 / -1"; // Ocupa todo el ancho superior del grid
 
-        const item =
-            value[i];
-
-        const card =
-            document.createElement("div");
-
-        card.className =
-            "detail-array-item";
-
-        wrapper.appendChild(
-            card
-        );
-
-        const removeButton =
-        document.createElement("button");
-    
-    removeButton.className =
-        "detail-button detail-button-delete";
-    
-    removeButton.innerText =
-        "🗑 Eliminar";
-    
-    removeButton.onclick = () => {
-    
-        value.splice(
-            i,
-            1
-        );
-    
+    addButton.onclick = () => {
+        if (!Array.isArray(value)) value = [];
+        value.push(createEmptyRecord(field.fields || []));
         render({
-    
-            container:
-                context.__editContainer,
-    
+            container: context.__editContainer,
             context,
-    
-            dataset:
-                context.currentDataset,
-    
-            schema:
-                context.__editSchema
-    
+            dataset: context.currentDataset,
+            schema: context.__editSchema
         });
-    
     };
-    
-    card.appendChild(
-        removeButton
-    );
 
-        //--------------------------------------------------
-        // PREVIEW MEDIA
-        //--------------------------------------------------
+    wrapper.appendChild(addButton);
 
-        if(
-            item?.tipos_media === "image" &&
-            item?.source?.file &&
-            item?.source?.path
-        ){
-
-            const img =
-                document.createElement("img");
-
-            img.src =
-                `${item.source.path}/${item.source.file}`;
-
-            img.style.maxWidth =
-                "200px";
-
-            img.style.maxHeight =
-                "150px";
-
-            img.style.display =
-                "block";
-
-            img.style.marginBottom =
-                "12px";
-
-            img.style.border =
-                "1px solid #ccc";
-
-            card.appendChild(
-                img
-            );
-        }
-
-        //--------------------------------------------------
-        // CAMPOS
-        //--------------------------------------------------
-
-        const fields =
-
-            Array.isArray(field.fields)
-
-                ? field.fields
-
-                : [];
-
-        for(const childField of fields){
-
-            await renderField({
-
-                container : card,
-
-                record    : item,
-
-                field     : childField,
-
-                schema,
-
-                context
-
-            });
-
-        }
-
+    if (!Array.isArray(value) || value.length === 0) {
+        renderEmpty(wrapper, "Sin elementos");
+        return;
     }
 
-}
+    // --------------------------------------------------
+    // RENDERIZADO DE ELEMENTOS
+    // --------------------------------------------------
+    for (let i = 0; i < value.length; i++) {
+        const item = value[i];
+        const card = document.createElement("div");
 
+        if (isMediaGrid) {
+            card.className = "detail-media-item";
+        } else if (isAudioList) {
+            card.className = "detail-audio-item";
+        } else {
+            card.className = "detail-array-item";
+        }
+
+        // Cabecera con Flexbox (reemplaza a float)
+        const header = document.createElement("div");
+        header.className = "array-item-header";
+
+        const removeButton = document.createElement("button");
+        removeButton.className = "detail-button detail-button-delete";
+        removeButton.type = "button";
+        removeButton.innerText = "🗑 Eliminar";
+
+        removeButton.onclick = () => {
+            value.splice(i, 1);
+            render({
+                container: context.__editContainer,
+                context,
+                dataset: context.currentDataset,
+                schema: context.__editSchema
+            });
+        };
+
+        header.appendChild(removeButton);
+        card.appendChild(header);
+
+        // Previsualización dinámica de medios si existen rutas
+        if (item?.source?.file && item?.source?.path) {
+            const mediaPath = `${item.source.path}/${item.source.file}`;
+            const tipo = item.tipos_media || item.tipo;
+
+            if (tipo === "image") {
+                const img = document.createElement("img");
+                img.src = mediaPath;
+                card.appendChild(img);
+            } else if (tipo === "video") {
+                const video = document.createElement("video");
+                video.src = mediaPath;
+                video.controls = true;
+                card.appendChild(video);
+            } else if (tipo === "audio") {
+                const audio = document.createElement("audio");
+                audio.src = mediaPath;
+                audio.controls = true;
+                card.appendChild(audio);
+            }
+        }
+
+        // Formulario de campos internos
+        const fields = Array.isArray(field.fields) ? field.fields : [];
+        for (const childField of fields) {
+            await renderField({
+                container: card,
+                record: item,
+                field: childField,
+                schema,
+                context
+            });
+        }
+
+        wrapper.appendChild(card);
+    }
+}
 // ==================================================
 // EMPTY
 // ==================================================

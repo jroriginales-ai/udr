@@ -149,17 +149,24 @@ body{
    🧩 GRID
 ====================================================== */
 
+/* ======================================================
+   🧩 GRID
+====================================================== */
+
 .list-grid{
-  display:grid;
+  display: grid;
 
-  grid-template-columns:
-    repeat(
-      auto-fit,
-      minmax(320px,1fr)
-    );
+  /* Forzar exactamente 4 tarjetas por renglón */
+  grid-template-columns: repeat(4, 1fr);
 
-  gap:24px;
+  gap: 24px;
 }
+
+/* Opcional: Oculta las etiquetas dentro de las tarjetas */
+.list-grid .list-card-label {
+  display: none !important;
+}
+
 
 /* ======================================================
    🃏 CARD
@@ -1072,4 +1079,135 @@ body{
 
   cursor:pointer;
 
+}
+
+/* Oculta las etiquetas, los valores y sus contenedores en la vista Grid */
+.list-grid .list-card-label,
+.list-grid .list-card-value,
+.list-grid .list-card-row {
+  display: none !important;
+}
+
+/* ======================================================
+   🖼️ DETAIL MEDIA GRID (4 Columnas)
+====================================================== */
+
+.detail-media-grid {
+  display: grid;
+  /* Fuerza 4 columnas iguales por renglón */
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-top: 18px;
+  width: 100%;
+}
+
+.detail-media-item {
+  background: #15151d;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: border-color .2s ease;
+}
+
+.detail-media-item:hover {
+  border-color: rgba(79, 124, 255, 0.45);
+}
+
+.detail-media-item img,
+.detail-media-item video {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+/* ======================================================
+   🎧 DETAIL AUDIO LIST (Lista Vertical)
+====================================================== */
+
+.detail-audio-list {
+  list-style: none;
+  padding: 0;
+  margin: 18px 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.detail-audio-item {
+  background: #1f1f2c;
+  border-left: 4px solid #4f7cff;
+  border-radius: 0 10px 10px 0;
+  padding: 10px 14px;
+}
+
+/* ======================================================
+   🏷️ DETAIL CELLS (Labels y Values dentro del Grid/Lista)
+====================================================== */
+
+.detail-label-cell {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: #8f95b2;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.detail-value-cell {
+  width: 100%;
+}
+
+/* Reponsivo para móviles en el detail grid */
+@media (max-width: 768px) {
+  .detail-media-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ==================================================
+   GRID & LISTAS COMPARTIDAS (Display / Edit)
+   ================================================== */
+
+.detail-media-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: max-content; /* Cada fila toma el alto que necesita su contenido */
+    align-items: start;        /* Evita deformación de tarjetas por vecinos más altos */
+    gap: 1rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.detail-media-item,
+.detail-array-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;         /* CLAVE: Evita que inputs o imágenes rompan el ancho de la columna */
+    overflow: visible;    /* Previene que se recorten desplegables o elementos dinámicos */
+    box-sizing: border-box;
+}
+
+/* Evitar que elementos multimedia e inputs fuercen un desbordamiento horizontal */
+.detail-media-item img,
+.detail-media-item video,
+.detail-media-item audio,
+.detail-media-item input,
+.detail-media-item textarea,
+.detail-media-item select {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Cabecera interna para botones de acción (elimina el desajuste por float) */
+.array-item-header {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: 0.25rem;
 }

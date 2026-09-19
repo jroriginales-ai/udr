@@ -133,111 +133,279 @@
   // ITEM
   // ==================================================
 
+//   async function renderItem({
+
+//     container,
+
+//     item,
+
+//     section,
+
+//     context,
+
+//     index
+
+// }){
+
+//     const card =
+//     document.createElement(
+//         "div"
+//     );
+
+// card.className =
+//     "detail-card";
+
+// container.appendChild(
+//     card
+// );
+
+
+//     //------------------------------------------
+//     // TITLE
+//     //------------------------------------------
+
+//     if(
+//         section.showTitle !==
+//         false
+//     ){
+
+//         const title =
+//             document.createElement(
+//                 "div"
+//             );
+
+//         title.className =
+//             "detail-title";
+
+//             title.style.display = "block";
+//             title.style.background = "#2d2613";
+//             title.style.color = "#f59e0b";
+//             title.style.fontSize = "18px";
+//             title.style.fontWeight = "bold";
+//             title.style.padding = "6px 10px";
+//             title.style.borderRadius = "4px";    
+
+//         title.innerText =
+
+//             item?.value?.titulo ||
+
+//             item?.value?.title ||
+
+//             item?.value?.nombre ||
+
+//             `Detalle ${index + 1}`;
+
+//         card.appendChild(
+//             title
+//         );
+
+//     }
+
+//     //------------------------------------------
+//     // FIELDS
+//     //------------------------------------------
+
+//     const fieldsToRender =
+//         buildVisibleFields(
+//             flattenFields(
+//                 item.fields || []
+//             )
+//         );
+
+//         let first = true;
+
+//         for(const field of fieldsToRender){
+        
+//             await renderField({
+        
+//                 container:
+//                     card,
+        
+//                 item,
+        
+//                 field,
+        
+//                 context,
+        
+//                 section,
+        
+//                 first
+        
+//             });
+        
+//             first = false;
+        
+//         }
+       
+// }
+
+// ==================================================
+  // ITEM
+  // ==================================================
+
   async function renderItem({
-
     container,
-
     item,
-
     section,
-
     context,
-
     index
+  }) {
+    const card = document.createElement("div");
+    card.className = "detail-card";
+    container.appendChild(card);
 
-}){
-
-    const card =
-    document.createElement(
-        "div"
-    );
-
-card.className =
-    "detail-card";
-
-container.appendChild(
-    card
-);
-
-
-    //------------------------------------------
+    // ------------------------------------------
     // TITLE
-    //------------------------------------------
+    // ------------------------------------------
+    if (section.showTitle !== false) {
+      const title = document.createElement("div");
+      title.className = "detail-title";
+      title.style.display = "block";
+      title.style.background = "#2d2613";
+      title.style.color = "#f59e0b";
+      title.style.fontSize = "18px";
+      title.style.fontWeight = "bold";
+      title.style.padding = "6px 10px";
+      title.style.borderRadius = "4px";
 
-    if(
-        section.showTitle !==
-        false
-    ){
+      title.innerText =
+        item?.value?.titulo ||
+        item?.value?.title ||
+        item?.value?.nombre ||
+        `Detalle ${index + 1}`;
 
-        const title =
-            document.createElement(
-                "div"
-            );
-
-        title.className =
-            "detail-title";
-
-            title.style.display = "block";
-            title.style.background = "#2d2613";
-            title.style.color = "#f59e0b";
-            title.style.fontSize = "18px";
-            title.style.fontWeight = "bold";
-            title.style.padding = "6px 10px";
-            title.style.borderRadius = "4px";    
-
-        title.innerText =
-
-            item?.value?.titulo ||
-
-            item?.value?.title ||
-
-            item?.value?.nombre ||
-
-            `Detalle ${index + 1}`;
-
-        card.appendChild(
-            title
-        );
-
+      card.appendChild(title);
     }
 
-    //------------------------------------------
-    // FIELDS
-    //------------------------------------------
+    // ------------------------------------------
+    // FIELDS SEGREGATION
+    // ------------------------------------------
+    const fieldsToRender = buildVisibleFields(
+      flattenFields(item.fields || [])
+    );
 
-    const fieldsToRender =
-        buildVisibleFields(
-            flattenFields(
-                item.fields || []
-            )
-        );
+    const mediaFields = [];
+    const audioFields = [];
+    const standardFields = [];
 
-        let first = true;
+    // Clasificar campos por su tipo/control
+    for (const field of fieldsToRender) {
+      const type = (field.type || field.control || "").toLowerCase();
 
-        for(const field of fieldsToRender){
+      if (["image", "img", "video", "document", "file", "doc"].includes(type)) {
+        mediaFields.push(field);
+      } else if (["audio", "sound"].includes(type)) {
+        audioFields.push(field);
+      } else {
+        standardFields.push(field);
+      }
+    }
+
+    // 1. Campos estándar (Campos de texto/clave-valor normales)
+    let first = true;
+    for (const field of standardFields) {
+      await renderField({
+        container: card,
+        item,
+        field,
+        context,
+        section,
+        first
+      });
+      first = false;
+    }
+
+    // 2. Galería Grid (Imágenes, Videos, Documentos en 4 Columnas)
+    if (mediaFields.length > 0) {
+      const gridContainer = document.createElement("div");
+      gridContainer.className = "detail-media-grid";
+      
+      // CSS Grid: 4 columnas iguales. El exceso pasa automáticamente a la siguiente fila
+      gridContainer.style.display = "grid";
+      gridContainer.style.gridTemplateColumns = "repeat(4, 1fr)";
+      gridContainer.style.gap = "12px";
+      gridContainer.style.marginTop = "15px";
+
+      for (const field of mediaFields) {
+        const gridCell = document.createElement("div");
+        gridCell.className = "detail-media-item";
         
-            await renderField({
-        
-                container:
-                    card,
-        
-                item,
-        
-                field,
-        
-                context,
-        
-                section,
-        
-                first
-        
-            });
-        
-            first = false;
-        
+        await renderFieldCell({
+          container: gridCell,
+          item,
+          field,
+          context,
+          section
+        });
+
+        gridContainer.appendChild(gridCell);
+      }
+
+      card.appendChild(gridContainer);
+    }
+
+    // 3. Audios en Lista Vertical
+    if (audioFields.length > 0) {
+      const audioList = document.createElement("ul");
+      audioList.className = "detail-audio-list";
+      audioList.style.listStyle = "none";
+      audioList.style.padding = "0";
+      audioList.style.marginTop = "15px";
+
+      for (const field of audioFields) {
+        const listItem = document.createElement("li");
+        listItem.className = "detail-audio-item";
+        listItem.style.marginBottom = "8px";
+
+        await renderFieldCell({
+          container: listItem,
+          item,
+          field,
+          context,
+          section
+        });
+
+        audioList.appendChild(listItem);
+      }
+
+      card.appendChild(audioList);
+    }
+  }
+
+  // ==================================================
+  // HELPER: RENDERIZAR CONTENIDO DE UN FIELD EN CELDA/LISTA
+  // ==================================================
+  async function renderFieldCell({ container, item, field, context, section }) {
+    const valueContainer = document.createElement("div");
+    valueContainer.className = "detail-value-cell";
+
+    if (field.showLabel !== false && (field.label || field.campo)) {
+      const label = document.createElement("div");
+      label.className = "detail-label-cell";
+      label.style.fontSize = "12px";
+      label.style.fontWeight = "bold";
+      label.style.marginBottom = "4px";
+      label.innerText = field.label || field.campo;
+      container.appendChild(label);
+    }
+
+    container.appendChild(valueContainer);
+
+    if (window.fieldRenderer?.render) {
+      await window.fieldRenderer.render({
+        container: valueContainer,
+        value: field.value,
+        field,
+        mode: section.mode || "display",
+        context: {
+          ...context,
+          item,
+          currentItem: item,
+          currentField: field
         }
-       
-}
+      });
+    }
+  }
 
   // ==================================================
   // FIELD
