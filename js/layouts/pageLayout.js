@@ -11,19 +11,11 @@
     const warn  = (...a) => window.logger?.warn?.(FILE, ...a);
     const error = (...a) => window.logger?.error?.(FILE, ...a);
 
-    // ==================================================
-    // EXPORT
-    // ==================================================
-
     const api = {
 
         render
 
     };
-
-    // ==================================================
-    // MAIN
-    // ==================================================
 
     async function render({
 
@@ -36,79 +28,60 @@
         try{
 
             if(!container){
+                warn("Contenedor DOM no proporcionado.");
                 return;
             }
 
             container.innerHTML = "";
 
-            const sections =
+            // Soporta recibir el layout directamente en section o dentro de context.layout
+            const currentSection = section.sections ? section : (context.layout || {});
+            const sections = currentSection.sections || [];
 
-                section.sections
-
-                ||
-
-                [];
+            log(`Renderizando pageLayout con ${sections.length} secciones.`);
 
             if(!Array.isArray(sections)){
+                warn("sections inválido.", sections);
+                return;
+            }
 
-                warn(
-                    "sections inválido.",
-                    sections
-                );
+            // Identifica la función de renderizado disponible en layoutRenderer
+            const renderFn = 
+                window.layoutRenderer?.renderLayout || 
+                window.layoutRenderer?.render;
 
+            if(!renderFn){
+                error("No se encontró el método de renderizado en window.layoutRenderer");
                 return;
             }
 
             for(const childSection of sections){
 
-                const sectionContainer =
+                const sectionContainer = document.createElement("div");
+                sectionContainer.className = "page-section";
+                container.appendChild(sectionContainer);
 
-                    document.createElement(
-                        "div"
-                    );
-
-                sectionContainer.className =
-                    "page-section";
-
-                container.appendChild(
-                    sectionContainer
-                );
-
-                await window.layoutRenderer
-                    ?.renderLayout({
-
-                        container:
-                            sectionContainer,
-
-                        section:
-                            childSection,
-
-                        context
-
-                    });
+                await renderFn.call(window.layoutRenderer, {
+                    container: sectionContainer,
+                    section: childSection,
+                    context
+                });
 
             }
 
         }
         catch(e){
 
-            error(
-                "render:",
-                e
-            );
+            error("render:", e);
 
         }
 
     }
 
-    // ==================================================
-    // REGISTRO GLOBAL
-    // ==================================================
-
+    // Registrar en ambas llaves para evitar fallos de resolución por nombre
     window.page = api;
+    window.pageLayout = api;
 
-    log(
-        "✅ pageLayout registrado correctamente"
-    );
+    log("✅ pageLayout registrado correctamente");
 
 })();

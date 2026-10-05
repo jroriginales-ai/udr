@@ -16,43 +16,61 @@
     
     };
     
-// ======================================================
-// EXECUTE
-// ======================================================
+    // ======================================================
+    // EXECUTE
+    // ======================================================
 
-async function execute({
+    async function execute({
 
-    context = {}
+        context = {}
 
-} = {}){
+    } = {}){
 
-    try{
+        try{
 
-        const definition = resolve({
+            const definition = resolve({
 
-            context
+                context
 
-        });
+            });
 
-        context.definition = definition;
+            context.definition = definition;
+            context.definitions = definition;
 
-        context.definitions = definition;
+            // --------------------------------------------------
+            // RESOLVER PROFILE DEFINITION
+            // --------------------------------------------------
+            const profileName = 
+                context.profile || 
+                context.context?.profile || 
+                "runtime";
 
-        return definition;
+            const profiles = 
+                definition?.startup?.profiles || {};
+
+            context.profile = profileName;
+            
+            // Asigna la configuración específica del perfil (ej. runtime)
+            context.profileDefinition = 
+                profiles[profileName] || null;
+
+            log(`Perfil resuelto: '${profileName}'`, context.profileDefinition);
+
+            return definition;
+
+        }
+        catch(e){
+
+            error(
+                "execute:",
+                e
+            );
+
+            throw e;
+
+        }
 
     }
-    catch(e){
-
-        error(
-            "execute:",
-            e
-        );
-
-        throw e;
-
-    }
-
-}
 
     // ======================================================
     // RESOLVE
@@ -93,4 +111,4 @@ async function execute({
     
     }
         
-    })();
+})();

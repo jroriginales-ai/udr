@@ -1,3 +1,7 @@
+// ======================================================
+// 📁 js/renderers/layoutRenderer.js
+// ======================================================
+
 (function(){
 
     const FILE = "layoutRenderer.js";
@@ -7,483 +11,239 @@
     const warn  = (...a)=>window.logger?.warn?.(FILE,...a);
     const error = (...a)=>window.logger?.error?.(FILE,...a);
 
-    const layoutRegistry =
-    Object.create(null);    
+    const layoutRegistry = Object.create(null);    
 
-// ==================================================
-// EXECUTE
-// ==================================================
+    // ==================================================
+    // EXECUTE
+    // ==================================================
 
-async function execute({
-
-    context = {}
-
-} = {}){
-
-    try{
-
-        await render({
-
-            context
-
-        });
-
-        return context.layout;
-
-    }
-    catch(e){
-
-        error(
-            "execute:",
-            e
-        );
-
-        throw e;
-
+    async function execute({ context = {} } = {}){
+        try{
+            await render({ context });
+            return context.layout;
+        }
+        catch(e){
+            error("execute:", e);
+            throw e;
+        }
     }
 
-}
+    // ==================================================
+    // RENDER
+    // ==================================================
 
-// ==================================================
-// RENDER
-// ==================================================
+    async function render({
+        container,
+        context = {},
+        section = null
+    } = {}){
 
-async function render({
+        try{
 
-    container,
-    context = {},
-    section = null
+            // Fallback robusto para encontrar el contenedor en el DOM
+            container ??= 
+                document.getElementById("content-view") || 
+                document.getElementById("app") || 
+                document.body;
 
-} = {}){
-
-    try{
-
-        container ??=
-
-            document.getElementById(
-                "content-view"
-            );
-
-        if(!container){
-
-            error(
-                "Container no encontrado."
-            );
-
-            return;
-
-        }
-
-        const runtimeSection =
-
-            section ||
-
-            context.layout;
-
-        if(!runtimeSection){
-
-            warn(
-                `Layout no encontrado: "${runtimeSection}"`
-            );
-
-            return;
-
-        }
-
-        return await renderLayout({
-
-            container,
-
-            section:
-                runtimeSection,
-
-            context
-
-        });
-
-    }
-    catch(e){
-
-        error(
-            "render:",
-            e
-        );
-
-    }
-
-}
-
-// ==================================================
-// RENDER LAYOUT
-// ==================================================
-
-async function renderLayout({
-
-    container,
-    section,
-    context = {}
-
-} = {}){
-
-    try{
-
-        if(!container){
-
-            return;
-
-        }
-
-        if(!section){
-
-            return;
-
-        }
-
-        const component =
-
-            resolveComponent(
-                section
-            );
-
-        const renderer =
-
-            getLayout(
-                component
-            );
-
-        if(!renderer){
-
-            error(
-
-                `Layout no registrado: ${component}`
-
-            );
-
-            return;
-
-        }
-
-        if(
-
-            typeof renderer.render ===
-            "function"
-        
-        ){
-        
-            //--------------------------------------------------
-            // PREPARAR PARÁMETROS PARA editLayout
-            //--------------------------------------------------
-        
-            if(component === "edit"){
-        
-                const dataset =
-                window.pathResolver.getByPath(
-            
-                    context.originalRoot,
-            
-                    section.dataSource
-            
-                );
-
-                    const schemaRaw =
-                    context?.root?.meta?.schemas?.[section.schema];
-                
-                debug(
-                    "EDIT schema RAW:",
-                    schemaRaw
-                );
-                
-                debug(
-                    "EDIT schema RAW Array?:",
-                    Array.isArray(schemaRaw)
-                );
-                
-                const schema =
-                await window.schemaResolver.getSchema({
-            
-                    context,
-            
-                    name:
-                        section.schema
-            
-                });
-                
-                debug(
-                    "EDIT schema RESUELTO:",
-                    schema
-                );
-
-                console.log(
-                    "EDIT SCHEMA JSON",
-                    JSON.stringify(
-                        schema,
-                        null,
-                        2
-                    )
-                );
-
-                return await renderer.render({
-        
-                    container,
-        
-                    section,
-        
-                    context,
-        
-                    dataset,
-        
-                    schema
-        
-                });
-        
+            if(!container){
+                error("Container no encontrado.");
+                return;
             }
-        
-            //--------------------------------------------------
-            // RESTO DE LOS LAYOUTS
-            //--------------------------------------------------
-        
-            return await renderer.render({
-        
+
+            const runtimeSection = section || context.layout;
+
+            if(!runtimeSection){
+                warn(`Layout no encontrado: "${runtimeSection}"`);
+                return;
+            }
+
+            return await renderLayout({
                 container,
-        
-                section,
-        
+                section: runtimeSection,
                 context
-        
-            });
-        
-        }
-
-        if(
-
-            typeof renderer ===
-            "function"
-
-        ){
-
-            return await renderer({
-
-                container,
-
-                section,
-
-                context
-
             });
 
         }
-
-        error(
-
-            `Renderer inválido: ${component}`
-
-        );
-
-    }
-    catch(e){
-
-        error(
-            "renderLayout:",
-            e
-        );
+        catch(e){
+            error("render:", e);
+        }
 
     }
 
-}
+    // ==================================================
+    // RENDER LAYOUT
+    // ==================================================
 
-// ==================================================
-// RESOLVE COMPONENT
-// ==================================================
+    async function renderLayout({
+        container,
+        section,
+        context = {}
+    } = {}){
 
-function resolveComponent(
+        try{
 
-    section = {}
+            if(!container || !section) return;
 
-){
+            const component = resolveComponent(section);
+            const renderer = getLayout(component);
 
-    try{
+            if(!renderer){
+                error(`Layout no registrado: ${component}`);
+                return;
+            }
 
-        return String(
+            log(`Ejecutando renderer para el componente: '${component}'`);
 
-            section.component ||
+            const renderFn = 
+                (typeof renderer.render === "function" && renderer.render) ||
+                (typeof renderer.renderLayout === "function" && renderer.renderLayout) ||
+                (typeof renderer === "function" && renderer);
 
-            "object"
+            if(renderFn){
 
-        )
+                // ----------------------------------------------
+                // PREPARAR PARÁMETROS PARA editLayout
+                // ----------------------------------------------
+                if(component === "edit"){
 
-        .trim()
+                    const dataset = window.pathResolver?.getByPath?.(
+                        context.originalRoot,
+                        section.dataSource
+                    );
 
-        .toLowerCase();
+                    const schema = await window.schemaResolver?.getSchema?.({
+                        context,
+                        name: section.schema
+                    });
+
+                    return await renderFn.call(renderer, {
+                        container,
+                        section,
+                        context,
+                        dataset,
+                        schema
+                    });
+
+                }
+
+                // ----------------------------------------------
+                // RESTO DE LOS LAYOUTS
+                // ----------------------------------------------
+                return await renderFn.call(renderer, {
+                    container,
+                    section,
+                    context
+                });
+
+            }
+
+            error(`Renderer inválido para: ${component}`);
+
+        }
+        catch(e){
+            error("renderLayout:", e);
+        }
 
     }
-    catch(e){
 
-        error(
+    // ==================================================
+    // RESOLVE COMPONENT
+    // ==================================================
 
-            "resolveComponent:",
-
-            e
-
-        );
-
-        return "object";
-
+    function resolveComponent(section = {}){
+        try{
+            return String(
+                section.component ||
+                section.type ||
+                "object"
+            )
+            .trim()
+            .toLowerCase();
+        }
+        catch(e){
+            error("resolveComponent:", e);
+            return "object";
+        }
     }
 
-}
+    // ==================================================
+    // HAS LAYOUT
+    // ==================================================
 
-// ==================================================
-// HAS LAYOUT
-// ==================================================
-
-function hasLayout(
-
-    name
-
-){
-
-    try{
-
-        if(!name){
-
+    function hasLayout(name){
+        try{
+            if(!name) return false;
+            return !!getLayout(name);
+        }
+        catch(e){
+            error("hasLayout:", e);
             return false;
-
         }
-
-        return !!getLayout(
-
-            name
-
-        );
-
-    }
-    catch(e){
-
-        error(
-
-            "hasLayout:",
-
-            e
-
-        );
-
-        return false;
-
     }
 
-}
+    // ==================================================
+    // GET LAYOUT (Con Búsqueda Global en Window)
+    // ==================================================
 
-// ==================================================
-// GET LAYOUT
-// ==================================================
+    function getLayout(name){
+        try{
+            if(!name) return null;
 
-function getLayout(
+            const key = String(name).trim().toLowerCase();
 
-    name
+            // 1. Buscar en el registro interno
+            if (layoutRegistry[key]) {
+                return layoutRegistry[key];
+            }
 
-){
+            // 2. Fallback: Buscar en window (ej. window.page, window.list)
+            if (window[key]) {
+                return window[key];
+            }
 
-    try{
-
-        if(!name){
+            // 3. Fallback: Buscar con sufijo Layout en window (ej. window.pageLayout, window.listLayout)
+            if (window[`${key}Layout`]) {
+                return window[`${key}Layout`];
+            }
 
             return null;
 
         }
-
-        return layoutRegistry[
-
-            String(name)
-
-                .trim()
-
-                .toLowerCase()
-
-        ] ||
-
-        null;
-
-    }
-    catch(e){
-
-        error(
-
-            "getLayout:",
-
-            e
-
-        );
-
-        return null;
-
+        catch(e){
+            error("getLayout:", e);
+            return null;
+        }
     }
 
-}
+    function registerLayout(name, layout){
+        if(!name || !layout) return;
 
-function registerLayout(
-
-    name,
-
-    layout
-
-){
-
-    if(!name || !layout){
-
-        return;
-
+        layoutRegistry[
+            String(name).trim().toLowerCase()
+        ] = layout;
     }
 
-    layoutRegistry[
-        String(name)
-            .trim()
-            .toLowerCase()
-    ] = layout;
+    function unregisterLayout(name){
+        delete layoutRegistry[
+            String(name).trim().toLowerCase()
+        ];
+    }
 
-}
+    // ==================================================
+    // EXPORT
+    // ==================================================
 
-function unregisterLayout(
+    window.layoutRenderer = {
+        execute,
+        render,
+        renderLayout,
+        registerLayout,
+        unregisterLayout,
+        hasLayout,
+        getLayout
+    };
 
-    name
-
-){
-
-    delete layoutRegistry[
-        String(name)
-            .trim()
-            .toLowerCase()
-    ];
-
-}
-
-// ==================================================
-// EXPORT
-// ==================================================
-
-window.layoutRenderer = {
-
-    execute,
-
-    render,
-
-    renderLayout,
-
-    registerLayout,
-
-    unregisterLayout,
-
-    hasLayout,
-
-    getLayout
-
-};
-
-// ==================================================
-// INIT
-// ==================================================
-
-log(
-    "layoutRenderer registrado correctamente."
-);
+    log("layoutRenderer registrado correctamente.");
 
 })();
