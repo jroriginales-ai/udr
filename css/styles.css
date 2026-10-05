@@ -149,30 +149,60 @@ body{
    🧩 GRID
 ====================================================== */
 
-/* ======================================================
-   🧩 GRID
-====================================================== */
-
-.list-grid{
+.list-grid {
   display: grid;
-
-  /* Forzar exactamente 4 tarjetas por renglón */
   grid-template-columns: repeat(4, 1fr);
-
   gap: 24px;
+  
+  /* 👈 Agrega un espacio en blanco/vacío antes de que empiecen las cards */
+  margin-top: 24px; 
 }
 
-/* Opcional: Oculta las etiquetas dentro de las tarjetas */
+/* 1. Ajustar el contenedor de la tarjeta */
+.list-grid .list-card {
+  padding: 0 !important;
+  height: 220px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 2. Ocultar únicamente las etiquetas de texto sobrantes */
 .list-grid .list-card-label {
   display: none !important;
 }
 
+/* 3. Ocultar las filas que NO contienen imágenes (títulos, textos, íconos aislados) */
+.list-grid .list-card-row:not(:has(img)) {
+  display: none !important;
+}
+
+/* 4. Asegurar que la fila y el contenedor de la imagen ocupen el 100% de la tarjeta */
+.list-grid .list-card-row:has(img),
+.list-grid .list-card-value {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* 5. Ajustar la imagen a borde completo sin deformar */
+.list-grid img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  display: block !important;
+}
 
 /* ======================================================
    🃏 CARD
 ====================================================== */
 
-.list-grid-card{
+.list-card,
+.list-grid-card {
   background:
     linear-gradient(
       180deg,
@@ -180,35 +210,22 @@ body{
       #15151d 100%
     );
 
-  border:
-    1px solid rgba(255,255,255,.06);
-
-  border-radius:22px;
-
-  padding:22px;
-
-  transition:
-    transform .2s ease,
-    border-color .2s ease,
-    box-shadow .2s ease;
-
-  box-shadow:
-    0 8px 30px rgba(0,0,0,.25);
-
-  overflow:hidden;
-
-  position:relative;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 22px;
+  padding: 22px;
+  transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+  box-shadow: 0 8px 30px rgba(0,0,0,.25);
+  overflow: hidden;
+  position: relative;
 }
 
-.list-grid-card:hover{
-  transform:translateY(-4px);
-
-  border-color:
-    rgba(79,124,255,.45);
-
-  box-shadow:
-    0 18px 40px rgba(79,124,255,.15);
+.list-card:hover,
+.list-grid-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(79,124,255,.45);
+  box-shadow: 0 18px 40px rgba(79,124,255,.15);
 }
+
 
 /* ======================================================
    🧱 CARD ROW
@@ -245,13 +262,15 @@ body{
    ✨ VALUE
 ====================================================== */
 
-.list-card-value{
-  font-size:16px;
-  line-height:1.5;
-
-  color:#fff;
-
-  word-break:break-word;
+/* Estilo general para imágenes en tarjetas */
+.list-card-value img,
+.list-card img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 12px;
+  display: block;
+  margin-bottom: 12px;
 }
 
 /* ======================================================
@@ -438,16 +457,6 @@ body{
   color:#aab1d0;
 }
 
-/* .detail-value{
-
-  flex:1;
-
-  display:flex;
-
-  align-items:center;
-
-} */
-
 .detail-layout .detail-value {
   display: block;
   min-height: 24px;
@@ -595,7 +604,7 @@ body{
 }
 
 /* ======================================================
-   🖼️ MEDIA EDITOR
+   🖼 MEDIA EDITOR
 ====================================================== */
 
 .editor-media{
@@ -742,7 +751,6 @@ body{
     font-size:26px;
   }
 }
-
 
 /* ======================================================
    📄 OBJECT RENDERER - FORZADO HORIZONTAL
@@ -899,11 +907,11 @@ body{
   gap: 10px;
   text-align: center;
   width: 100%;
-  max-width: 180px;           /* limita el ancho total */
+  max-width: 180px;
 }
 
 .tipos-media-img {
-  width: 180px !important;    /* ← Tamaño principal */
+  width: 180px !important;
   height: 180px !important;
   flex-shrink: 0;
   background: #1f1f1f;
@@ -1081,34 +1089,33 @@ body{
 
 }
 
-/* Oculta las etiquetas, los valores y sus contenedores en la vista Grid */
-.list-grid .list-card-label,
-.list-grid .list-card-value,
-.list-grid .list-card-row {
-  display: none !important;
-}
-
 /* ======================================================
    🖼️ DETAIL MEDIA GRID (4 Columnas)
 ====================================================== */
 
 .detail-media-grid {
   display: grid;
-  /* Fuerza 4 columnas iguales por renglón */
   grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: max-content;
+  align-items: start;
   gap: 16px;
   margin-top: 18px;
   width: 100%;
+  box-sizing: border-box;
 }
 
-.detail-media-item {
+.detail-media-item,
+.detail-array-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+  overflow: visible;
+  box-sizing: border-box;
   background: #15151d;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   padding: 12px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
   transition: border-color .2s ease;
 }
 
@@ -1117,8 +1124,18 @@ body{
 }
 
 .detail-media-item img,
-.detail-media-item video {
+.detail-media-item video,
+.detail-media-item audio,
+.detail-media-item input,
+.detail-media-item textarea,
+.detail-media-item select {
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.detail-media-item img,
+.detail-media-item video {
   height: 140px;
   object-fit: cover;
   border-radius: 8px;
@@ -1145,7 +1162,7 @@ body{
 }
 
 /* ======================================================
-   🏷️ DETAIL CELLS (Labels y Values dentro del Grid/Lista)
+   🏷️ DETAIL CELLS
 ====================================================== */
 
 .detail-label-cell {
@@ -1161,53 +1178,16 @@ body{
   width: 100%;
 }
 
-/* Reponsivo para móviles en el detail grid */
+.array-item-header {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+/* Responsivo para móviles */
 @media (max-width: 768px) {
   .detail-media-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-}
-
-/* ==================================================
-   GRID & LISTAS COMPARTIDAS (Display / Edit)
-   ================================================== */
-
-.detail-media-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    grid-auto-rows: max-content; /* Cada fila toma el alto que necesita su contenido */
-    align-items: start;        /* Evita deformación de tarjetas por vecinos más altos */
-    gap: 1rem;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.detail-media-item,
-.detail-array-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    min-width: 0;         /* CLAVE: Evita que inputs o imágenes rompan el ancho de la columna */
-    overflow: visible;    /* Previene que se recorten desplegables o elementos dinámicos */
-    box-sizing: border-box;
-}
-
-/* Evitar que elementos multimedia e inputs fuercen un desbordamiento horizontal */
-.detail-media-item img,
-.detail-media-item video,
-.detail-media-item audio,
-.detail-media-item input,
-.detail-media-item textarea,
-.detail-media-item select {
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-}
-
-/* Cabecera interna para botones de acción (elimina el desajuste por float) */
-.array-item-header {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    margin-bottom: 0.25rem;
 }

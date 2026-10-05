@@ -7,778 +7,331 @@
     const warn  = (...a) => window.logger?.warn?.(FILE, ...a);
     const error = (...a) => window.logger?.error?.(FILE, ...a);
 
-  // ==================================================
-  // EXPORT
-  // ==================================================
+    // ==================================================
+    // EXPORT
+    // ==================================================
 
-  const api = {
-    render
-};    
+    const api = {
+        render
+    };    
 
-// =====================================================
-// MAIN
-// =====================================================
+    // =====================================================
+    // MAIN
+    // =====================================================
 
-async function render({
+// Dentro de listLayout.js
 
-    container,
-    section = {},
-    context = {}
+async function render({ container, section = {}, context = {} }) {
+    const layoutConfig = section || {};
 
-}){
-
-
-    // debug(
-    //     "SECTION:",
-    //     section
-    // );
-
-    //         console.log(
-    //             "CONTEXT KEYS:",
-    //             Object.keys(context)
-    //         );
-            
-    //         console.log(
-    //             "SCHEMAS:",
-    //             context.schemas
-    //         );
-            
-    //         console.log(
-    //             "LAYOUT:",
-    //             context.layout
-    //         );
-            
-    //         console.log(
-    //             "DATASETS:",
-    //             context.datasets
-    //         );       
-
-    //         console.log(
-    //             "META:",
-    //             context.datasets?.meta
-    //         );
-            
-    //         console.log(
-    //             "LAYOUT DATASET:",
-    //             context.datasets?.layout
-    //         );        
-            
-    //         console.log(
-    //             "META VALUE:",
-    //             context.datasets?.meta?.value
-    //         );
-            
-    //         console.log(
-    //             "META SCHEMA:",
-    //             context.datasets?.meta?.schema
-    //         );            
-    
-    //         console.log(
-    //             "DEFINITION:",
-    //             context.definition
-    //         );
-            
-    //         console.log(
-    //             "DEFINITIONS:",
-    //             context.definitions
-    //         );
-
-    //         console.log(
-    //             "DATA DEFINITION:",
-    //             context.datasets?.data?.definition
-    //         );
-            
-    //         console.log(
-    //             "META DEFINITION:",
-    //             context.datasets?.meta?.definition
-    //         );      
-            
-    //         console.log(
-    //             "2) META VALUE:",
-    //             JSON.stringify(
-    //                 context.datasets?.meta?.value,
-    //                 null,
-    //                 2
-    //             )
-    //         );            
-
-    //         console.log(
-    //             "DATA SCHEMA:",
-    //             context.datasets?.data?.schema
-    //         );            
-
-    //         console.log(
-    //             "DATA SCHEMA:",
-    //             JSON.stringify(
-    //                 context.datasets?.data?.schema,
-    //                 null,
-    //                 2
-    //             )
-    //         );  
-
-    const layoutConfig =
-        section || {};
-
-    try{
-
-        if(!container){
-            return;
-        }
-
+    try {
+        if (!container) return;
         container.innerHTML = "";
 
-        //------------------------------------------------
-        // ITEMS
-        //------------------------------------------------
+        const items = resolveItems(layoutConfig, context);
 
-        const items =
-
-            layoutConfig.items || [];
-
-            // console.log(
-            //     "ITEM",
-            //     items?.[0]
-            // );          
-
-        if(!items.length){
-
-            warn(
-                "Sin elementos para renderizar."
-            );
-
+        if (!items.length) {
+            warn("Sin elementos para renderizar en listLayout.");
             return;
-
         }
 
-        //------------------------------------------------
-        // FIELDS
-        //------------------------------------------------
+        const fields = resolveFields(layoutConfig, items, context);
 
-        const fields =
-        expandFields(
-            items?.[0]?.fields || []
-        );
+        const view = String(
+            layoutConfig.view || layoutConfig.tipo || "grid"
+        ).toLowerCase();
 
-//  log("FIELDS: ", fields);
-
-
-        if(!fields.length){
-
-            warn(
-                "Sin campos definidos."
-            );
-
-            return;
-
+        // IMPORTANTE: poner 'return await' para asegurar la renderización en el DOM
+        if (view === "grid" || view === "cards") {
+            return await renderGrid({ container, items, fields, layoutConfig, context });
+        } else {
+            return await renderTable({ container, items, fields, layoutConfig, context });
         }
 
-        //------------------------------------------------
-        // VIEW
-        //------------------------------------------------
-
-        const view =
-            String(
-
-                layoutConfig.view ||
-
-                layoutConfig.tipo ||
-
-                "table"
-
-            )
-            .toLowerCase();
-
-        switch(view){
-
-            case "grid":
-            case "cards":
-
-                return renderGrid({
-
-                    container,
-                    items,
-                    fields,
-                    layoutConfig,
-                    context
-
-                });
-
-            case "table":
-            default:
-
-                return renderTable({
-
-                    container,
-                    items,
-                    fields,
-                    layoutConfig,
-                    context
-
-                });
-
-        }
-
+    } catch(e) {
+        error("Error en render de listLayout:", e);
     }
-    catch(e){
-
-        error(
-            "render:",
-            e
-        );
-
-    }
-
 }
 
+    // =====================================================
+    // RESOLVERS DE DATOS Y CAMPOS
+    // =====================================================
 
-// =====================================================
-// VISIBLE FIELDS
-// =====================================================
+    function resolveItems(layoutConfig, context){
+        if (Array.isArray(layoutConfig.items) && layoutConfig.items.length) {
+            return layoutConfig.items;
+        }
 
-function buildVisibleFields(
-    fields = []
-){
+        const datasetKey = layoutConfig.dataset || layoutConfig.dataSource;
+        if (datasetKey && context.datasets?.[datasetKey]?.items) {
+            return context.datasets[datasetKey].items;
+        }
 
-    return fields.filter(field => {
+        if (context.datasets?.data?.items) {
+            return context.datasets.data.items;
+        }
 
-        return (
-            field.hidden !== true &&
-            field.visible !== false &&
-            field.visible !== "false"
-        );
+        if (context.datasets?.main?.items) {
+            return context.datasets.main.items;
+        }
 
-    });
+        if (Array.isArray(context.items)) {
+            return context.items;
+        }
 
-}
-
-
-// =====================================================
-// NAVIGATION
-// =====================================================
-
-function applyNavigation({
-
-    element,
-    item
-
-}){
-
-    if(
-
-        !element ||
-
-        !window
-            .navigateRenderer
-            ?.isNavigation(
-
-                item?.navigation
-
-            )
-
-    ){
-        return;
+        return [];
     }
 
-    element.style.cursor =
-        "pointer";
+    function resolveFields(layoutConfig, items, context){
+        let rawFields = items?.[0]?.fields || layoutConfig.fields || sectionFieldsFromContext(layoutConfig, context);
 
-    element.onclick =
-        async ()=>{
+        if (!rawFields || !rawFields.length) {
+            const sampleItem = items?.[0]?.value || items?.[0];
+            if (sampleItem && typeof sampleItem === "object") {
+                rawFields = Object.keys(sampleItem)
+                    .filter(key => key !== "__resolved")
+                    .map(key => ({ campo: key, label: key }));
+            }
+        }
 
-            await window
-                .navigateRenderer
-                .navigate(
+        return expandFields(rawFields || []);
+    }
 
-                    item.navigation
+    function sectionFieldsFromContext(layoutConfig, context){
+        const schemaName = layoutConfig.schema;
+        if (schemaName && context.schemas?.[schemaName]?.fields) {
+            return context.schemas[schemaName].fields;
+        }
+        return [];
+    }
 
-                );
+    // =====================================================
+    // VISIBLE FIELDS
+    // =====================================================
 
+    function buildVisibleFields(fields = []){
+        return fields.filter(field => {
+            return (
+                field.hidden !== true &&
+                field.visible !== false &&
+                field.visible !== "false"
+            );
+        });
+    }
+
+    // =====================================================
+    // NAVIGATION
+    // =====================================================
+
+    function applyNavigation({ element, item }){
+        if(
+            !element ||
+            !window.navigateRenderer?.isNavigation(item?.navigation)
+        ){
+            return;
+        }
+
+        element.style.cursor = "pointer";
+        element.onclick = async ()=>{
+            await window.navigateRenderer.navigate(item.navigation);
         };
-
-}
-
-// =====================================================
-// TABLE
-// =====================================================
-
-async function renderTable({
-
-    container,
-    items,
-    fields,
-    layoutConfig,
-    context
-
-}){
-
-    const table =
-        document.createElement(
-            "table"
-        );
-
-    table.className =
-        "list-table";
-
-    const visibleFields =
-        buildVisibleFields(
-            fields
-        );
-
-    //------------------------------------------------
-    // HEADER
-    //------------------------------------------------
-
-    const thead =
-        document.createElement(
-            "thead"
-        );
-
-    const tr =
-        document.createElement(
-            "tr"
-        );
-
-        // console.log(
-        //     "FIELDS TO RENDER",
-        //     JSON.stringify(
-        //         visibleFields,
-        //         null,
-        //         2
-        //     )
-        // );
-        
-
-    for(const field of visibleFields){     
-
-        const th =
-            document.createElement(
-                "th"
-            );
-
-        th.className =
-            "list-header";
-
-        if(field.columnWidth){
-
-            th.style.width =
-                field.columnWidth;
-
-            th.style.minWidth =
-                field.columnWidth;
-
-            th.style.maxWidth =
-                field.columnWidth;
-
-        }
-
-        th.innerText =
-
-            field.label ||
-
-            field.campo ||
-
-            "";
-
-        tr.appendChild(
-            th
-        );
-
     }
 
-    thead.appendChild(
-        tr
-    );
+    // =====================================================
+    // TABLE
+    // =====================================================
 
-    table.appendChild(
-        thead
-    );
+    async function renderTable({
+        container,
+        items,
+        fields,
+        layoutConfig,
+        context
+    }){
 
-    //------------------------------------------------
-    // BODY
-    //------------------------------------------------
+        const table = document.createElement("table");
+        table.className = "list-table";
 
-    const tbody =
-        document.createElement(
-            "tbody"
-        );
+        const visibleFields = buildVisibleFields(fields);
 
-    for(const item of items){
+        //------------------------------------------------
+        // HEADER
+        //------------------------------------------------
 
-        const row =
-            document.createElement(
-                "tr"
-            );
+        const thead = document.createElement("thead");
+        const tr = document.createElement("tr");
 
-        row.className =
-            "list-row";          
+        for(const field of visibleFields){     
+            const th = document.createElement("th");
+            th.className = "list-header";
 
-            const fieldsToRender =
-            buildVisibleFields(
-                expandFields(item.fields || [])
-            );
-        
-            // console.log(
-            //     "ITEM.VALUE:",
-            //     item.value
-            // );
-
-            // console.log(
-            //     "ITEM:",
-            //     item
-            // );
-                        
-        for(const field of fieldsToRender){
-        
-            const td =
-                document.createElement(
-                    "td"
-                );
-        
-            td.className =
-                "list-cell";
-        
             if(field.columnWidth){
-        
-                td.style.width =
-                    field.columnWidth;
-        
+                th.style.width = field.columnWidth;
+                th.style.minWidth = field.columnWidth;
+                th.style.maxWidth = field.columnWidth;
             }
 
-            // console.log(
-            //     "CAMPO:",
-            //     field.campo
-            // );
+            th.innerText = field.label || field.campo || "";
+            tr.appendChild(th);
+        }
+
+        thead.appendChild(tr);
+        table.appendChild(thead);
+
+        //------------------------------------------------
+        // BODY
+        //------------------------------------------------
+
+        const tbody = document.createElement("tbody");
+
+        for(const item of items){
+            const row = document.createElement("tr");
+            row.className = "list-row";          
+
+            const fieldsToRender = buildVisibleFields(
+                expandFields(item.fields || fields)
+            );
+                            
+            for(const field of fieldsToRender){
+                const td = document.createElement("td");
+                td.className = "list-cell";
             
-            // console.log(
-            //     "VALOR REGISTRO:",
-            //     item?.value?.[field.campo]
-            // );
+                if(field.columnWidth){
+                    td.style.width = field.columnWidth;
+                }
+
+                // Extracción de valor con fallback dinámico
+                const itemData = item?.value || item;
+                const cellValue = 
+                    field.resolvedValue ?? 
+                    field.value ?? 
+                    itemData?.__resolved?.[field.campo] ?? 
+                    itemData?.[field.campo];
             
-            // console.log(
-            //     "RESOLVED:",
-            //     item?.value?.__resolved?.[field.campo]
-            // );            
-        
-            await window
-                .fieldRenderer
-                ?.render({
-        
+                await window.fieldRenderer?.render({
                     container: td,
-        
-                    value:
-                        field.resolvedValue ??
-                        field.value,
-        
+                    value: cellValue,
                     field,
-        
-                    mode:
-        
-                        layoutConfig.mode ||
-        
-                        "display",
-        
+                    mode: layoutConfig.mode || "display",
                     context:{
-        
                         ...context,
-        
                         item,
-        
-                        currentItem:
-                            item,
-        
-                        currentField:
-                            field
-        
+                        currentItem: item,
+                        currentField: field
                     }
-        
                 });
-        
-            row.appendChild(
-                td
-            );
-        
-        }
-
-        applyNavigation({
-
-            element: row,
-
-            item
-
-        });
-
-        tbody.appendChild(
-            row
-        );
-
-    }
-
-    table.appendChild(
-        tbody
-    );
-
-    container.appendChild(
-        table
-    );
-
-}
-
-// =====================================================
-// GRID
-// =====================================================
-
-async function renderGrid({
-
-    container,
-    items,
-    fields,
-    layoutConfig,
-    context
-
-}){
-
-    const grid =
-        document.createElement(
-            "div"
-        );
-
-    grid.className =
-        "list-grid";
-
-    for(const item of items){
-
-        const card =
-            document.createElement(
-                "div"
-            );
-
-        card.className =
-            "list-card";
-
-        for(const field of (item.fields || [])){
-
-            if(field.hidden){
-
-                continue;
-
+            
+                row.appendChild(td);
             }
 
-            const row =
-                document.createElement(
-                    "div"
-                );
+            applyNavigation({ element: row, item });
+            tbody.appendChild(row);
+        }
 
-            row.className =
-                "list-card-row";
+        table.appendChild(tbody);
+        container.appendChild(table);
+    }
 
-            //--------------------------------------------
-            // LABEL
-            //--------------------------------------------
+    // =====================================================
+    // GRID
+    // =====================================================
 
-            if(
-                field.showLabel !== false
-            ){
+    async function renderGrid({
+        container,
+        items,
+        fields,
+        layoutConfig,
+        context
+    }){
 
-                const label =
-                    document.createElement(
-                        "div"
-                    );
+        const grid = document.createElement("div");
+        grid.className = "list-grid";
 
-                label.className =
-                    "list-card-label";
+        for(const item of items){
+            const card = document.createElement("div");
+            card.className = "list-card";
 
-                label.innerText =
+            const fieldsToRender = item.fields || fields;
 
-                    field.label ||
+            for(const field of fieldsToRender){
+                if(field.hidden){
+                    continue;
+                }
 
-                    field.campo;
+                const row = document.createElement("div");
+                row.className = "list-card-row";
 
-                row.appendChild(
-                    label
-                );
+                if(field.showLabel !== false){
+                    const label = document.createElement("div");
+                    label.className = "list-card-label";
+                    label.innerText = field.label || field.campo;
+                    row.appendChild(label);
+                }
 
-            }
+                const valueDiv = document.createElement("div");
+                valueDiv.className = "list-card-value";
 
-            //--------------------------------------------
-            // VALUE
-            //--------------------------------------------
+                const itemData = item?.value || item;
+                const cellValue = 
+                    field.resolvedValue ?? 
+                    field.value ?? 
+                    itemData?.__resolved?.[field.campo] ?? 
+                    itemData?.[field.campo];
 
-            const valueDiv =
-                document.createElement(
-                    "div"
-                );
-
-            valueDiv.className =
-                "list-card-value";
-
-                // console.log(
-                //     "CAMPO:",
-                //     field.campo
-                // );
-                
-                // console.log(
-                //     "VALOR REGISTRO:",
-                //     item?.value?.[field.campo]
-                // );
-                
-                // console.log(
-                //     "RESOLVED:",
-                //     item?.value?.__resolved?.[field.campo]
-                // );                
-
-            await window
-                .fieldRenderer
-                ?.render({
-
-                    container:
-                        valueDiv,
-
-                    value:
-                        field.resolvedValue ??
-                        field.value,
-
+                await window.fieldRenderer?.render({
+                    container: valueDiv,
+                    value: cellValue,
                     field,
-
-                    mode:
-
-                        layoutConfig.mode ||
-
-                        "display",
-
+                    mode: layoutConfig.mode || "display",
                     context:{
-
                         ...context,
-
                         item,
-
-                        currentItem:
-                            item,
-
-                        currentField:
-                            field
-
+                        currentItem: item,
+                        currentField: field
                     }
-
                 });
 
-            row.appendChild(
-                valueDiv
-            );
+                row.appendChild(valueDiv);
+                card.appendChild(row);
+            }
 
-            card.appendChild(
-                row
-            );
-
+            applyNavigation({ element: card, item });
+            grid.appendChild(card);
         }
 
-        applyNavigation({
-
-            element:
-                card,
-
-            item
-
-        });
-
-        grid.appendChild(
-            card
-        );
-
+        container.appendChild(grid);
     }
 
-    container.appendChild(
-        grid
-    );
+    function expandFields(fields = [], parentLabel = null){
+        const result = [];
 
-}
+        for(const field of fields){
+            const current = { ...field };
 
-function expandFields(
-    fields = [],
-    parentLabel = null
-){
+            if(parentLabel && !current.label){
+                current.label = `${parentLabel} - ${current.campo}`;
+            }
 
-    const result = [];
+            result.push(current);
 
-    for(const field of fields){
-
-        const current = {
-            ...field
-        };
-
-        if(
-            parentLabel &&
-            !current.label
-        ){
-            current.label =
-                `${parentLabel} - ${current.campo}`;
+            if(Array.isArray(current.fields) && current.fields.length){
+                result.push(...expandFields(current.fields, current.label));
+            }
         }
 
-        result.push(current);
-
-        if(
-            Array.isArray(current.fields) &&
-            current.fields.length
-        ){
-
-            result.push(
-                ...expandFields(
-                    current.fields,
-                    current.label
-                )
-            );
-
-        }
-
-    }
-
-    return result;
-
-}
-
-// =====================================================
-// EXPAND RESOLVED
-// =====================================================
-
-function expandResolved(resolved){
-
-    const result = [];
-
-    if(!resolved){
         return result;
     }
-
-    for(const value of Object.values(resolved)){
-
-        if(!value){
-            continue;
-        }
-
-        if(Array.isArray(value.items)){
-
-            for(const item of value.items){
-
-                result.push(...(item.fields || []));
-
-            }
-
-        }
-        else if(Array.isArray(value.fields)){
-
-            result.push(...value.fields);
-
-        }
-
-    }
-
-    return result;
-
-}
 
     // ==================================================
     // REGISTRO GLOBAL
     // ==================================================
-    window.list = api;                    // ← Importante
+    window.list = api;
+    window.listLayout = api;
+
+    if (window.layoutRenderer?.registerLayout) {
+        window.layoutRenderer.registerLayout("list", api);
+    }
 
     log("✅ listLayout registrado correctamente");
 
-})();   // ← Cierre del IIFE
+})();
