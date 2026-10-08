@@ -1,450 +1,106 @@
 // ======================================================
 // 📁 js/ui/fieldRenderer.js
 // ======================================================
-// ✅ UNIVERSAL DECLARATIVE RUNTIME
-// ✅ Dispatcher puro
-// ✅ Registry interno
-// ✅ Sin switch(type)
-// ✅ Sin renderObject()
-// ✅ Sin renderArray()
-// ✅ Sin lógica heredada
-// ======================================================
 
-(function(){
+(function () {
 
-const FILE = "fieldRenderer.js";
+    const FILE = "fieldRenderer.js";
+    const log = (...a) => window.logger?.info?.(FILE, ...a);
 
-const log   = (...a) => window.logger?.info?.(FILE, ...a);
-const debug = (...a) => window.logger?.debug?.(FILE, ...a);
-const warn  = (...a) => window.logger?.warn?.(FILE, ...a);
-const error = (...a) => window.logger?.error?.(FILE, ...a);
+    // Registry interno de funciones renderizadoras
+    const registry = Object.create(null);
 
-// ==================================================
-// INTERNAL REGISTRY
-// ==================================================
+    const cleanKey = (name) => String(name || "").trim();
 
-const fieldRegistry =
-    Object.create(null);
+    window.fieldRenderer = {
+        render,
+        resolveRenderer,
+        registerRenderer:   (name, r) => { if (name && r) registry[cleanKey(name)] = r; },
+        unregisterRenderer: (name) => delete registry[cleanKey(name)],
+        hasRenderer:        (name) => !!registry[cleanKey(name)],
+        getRenderer:        (name) => registry[cleanKey(name)] || null,
+        getRendererRegistry: () => ({ ...registry })
+    };
 
-// ==================================================
-// EXPORTS
-// ==================================================
+    async function render({
+        container,
+        value,
+        field = {},
+        mode = "display",
+        context = {}
+    } = {}) {
 
-window.fieldRenderer = {
-
-    render,
-
-    registerRenderer,
-    unregisterRenderer,
-
-    hasRenderer,
-    getRenderer,
-
-    getRendererRegistry,
-
-    resolveRenderer
-
-};
-
-// ==================================================
-// MAIN
-// ==================================================
-
-async function render({
-
-    container,
-    value,
-    field = {},
-    mode = "display",
-    context = {}
-
-} = {}){
-
-    try{
-
-        if(!container){
-            return;
-        }
-
+        if (!container) return;
         container.innerHTML = "";
 
-        const rendererName =
-        resolveRenderer({
-            field,
-            value
-        });
-    
-    // debug(
-    //      "Renderer solicitado:",
-    //      rendererName
-    //  );
-    
-    //  debug(
-    //      "Registry:",
-    //      Object.keys(fieldRegistry)
-    //  );
-    
-    const renderer =
-        getRenderer(
-            rendererName
-        );
+        const rendererName = resolveRenderer({ field, context });
+        const renderer = registry[cleanKey(rendererName)];
 
-        if(!renderer){
-
-            error(
-                `Renderer no registrado: ${rendererName}`
-            );
-
-            return;
+        if (!renderer) {
+            throw new Error(`Renderer no registrado: '${rendererName}'.`);
         }
 
-        if(
-            typeof renderer.render !==
-            "function"
-        ){
-
-            error(
-                `Renderer inválido: ${rendererName}`
-            );
-
-            return;
+        if (typeof renderer.render !== "function") {
+            throw new Error(`Renderer inválido en '${rendererName}': debe implementar la función render().`);
         }
 
         return await renderer.render({
-
             container,
-
             value,
-
             field,
-
             mode,
-
             context
-
         });
-
-    }
-    catch(e){
-
-        error(
-            "render:",
-            e
-            // rendererName
-        );
-    }
-}
-
-// ==================================================
-// RESOLVE
-// ==================================================
-
-function resolveRenderer({
-
-    field = {}
-
-} = {}){
-
-    //--------------------------------------------------
-    // renderer explícito
-    //--------------------------------------------------
-
-    if(field.renderer){
-
-        return String(field.renderer)
-            .trim();
-
     }
 
-    //--------------------------------------------------
-    // renderer por tipo
-    //--------------------------------------------------
-
-    if(field.tipo){
-
-        switch(String(field.tipo).trim().toLowerCase()){
-    
-            case "text":
-                return "textFieldRenderer";
-    
-            case "image":
-                return "imageFieldRenderer";
-    
-            case "icon":
-                return "iconFieldRenderer";
-    
-            case "navigate":
-                return "navigateFieldRenderer";
-    
-            default:
-                return String(field.tipo).trim();
-        }
-    
-    }
-
-    //--------------------------------------------------
-    // layout embebido
-    //--------------------------------------------------
-
-    if(field.component){
-
-        return "__layout__";
-
-    }
-
-    //--------------------------------------------------
-    // default
-    //--------------------------------------------------
-
-    return "textFieldRenderer";
-
-}
-
-// ==================================================
-// REGISTER
-// ==================================================
-
-function registerRenderer(
-
-    name,
-    renderer
-
-){
-
-    try{
-
-        if(
-            !name ||
-            !renderer
-        ){
-
-            return;
+    // ==================================================
+    // 🚀 RESOLVE (Lee directamente del JSON)
+    // ==================================================
+    function resolveRenderer({ field = {}, context = {} } = {}) {
+        // 1. Renderer explícito en el campo
+        if (field.renderer) {
+            return cleanKey(field.renderer);
         }
 
-        const key =
-            String(name)
+        // 2. Mapeo declarativo extraído del JSON (_root.meta.fieldRenderers)
+        const jsonTypeMap = context.root?.meta?.fieldRenderers || {};
+        const rawType = cleanKey(field.tipo).toLowerCase();
 
-            .trim();
-
-            // debug(
-            //     `Registrado: ${key}`
-            // );            
-
-        fieldRegistry[
-            key
-        ] = renderer;
-
-        // debug(
-        //     `Renderer registrado: ${key}`
-        // );
-
-    }
-    catch(e){
-
-        error(
-            "registerRenderer:",
-            e
-        );
-
-    }
-
-}
-
-// ==================================================
-// UNREGISTER
-// ==================================================
-
-function unregisterRenderer(
-    name
-){
-
-    try{
-
-        if(
-            !name
-        ){
-            return;
+        if (rawType && jsonTypeMap[rawType]) {
+            return jsonTypeMap[rawType];
         }
 
-        const key =
-            String(name)
-
-            .trim();
-
-        delete fieldRegistry[
-            key
-        ];
-
-    }
-    catch(e){
-
-        error(
-            "unregisterRenderer:",
-            e
-        );
-
-    }
-
-}
-
-// ==================================================
-// EXISTS
-// ==================================================
-
-function hasRenderer(
-    name
-){
-
-    try{
-
-        if(
-            !name
-        ){
-
-            return false;
-
+        // 3. Convenio dinámico o fallback si viene tipo pero no está en el mapa
+        if (field.tipo) {
+            return rawType.endsWith("renderer") 
+                ? cleanKey(field.tipo) 
+                : `${rawType}FieldRenderer`;
         }
 
-        const key =
-            String(name)
-
-            .trim();
-
-        return !!fieldRegistry[
-            key
-        ];
-
-    }
-    catch(e){
-
-        error(
-            "hasRenderer:",
-            e
-        );
-
-        return false;
-
-    }
-
-}
-
-// ==================================================
-// GET
-// ==================================================
-
-function getRenderer(
-    name
-){
-
-    try{
-
-        if(
-            !name
-        ){
-
-            return null;
-
+        // 4. Layout embebido
+        if (field.component) {
+            return "__layout__";
         }
 
-        const key =
-            String(name)
-
-            .trim();
-
-        return (
-
-            fieldRegistry[
-                key
-            ]
-
-            ||
-
-            null
-
-        );
-
-    }
-    catch(e){
-
-        error(
-            "getRenderer:",
-            e
-        );
-
-        return null;
-
+        // 5. Fallback por defecto
+        return "textFieldRenderer";
     }
 
-}
+    // Default Layout Bridge
+    window.fieldRenderer.registerRenderer("__layout__", {
+        async render({ container, value, field, context }) {
+            return await window.layoutRenderer?.renderLayout({
+                container,
+                section: field,
+                context: {
+                    ...context,
+                    currentItem: value,
+                    item: value
+                }
+            });
+        }
+    });
 
-// ==================================================
-// SNAPSHOT
-// ==================================================
-
-function getRendererRegistry(){
-
-    try{
-
-        return {
-
-            ...fieldRegistry
-
-        };
-
-    }
-    catch(e){
-
-        error(
-            "getRendererRegistry:",
-            e
-        );
-
-        return {};
-
-    }
-
-}
-
-// ==================================================
-// DEFAULT LAYOUT BRIDGE
-// ==================================================
-
-registerRenderer("__layout__", {
-
-    async render({
-
-        container,
-        value,
-        field,
-        context
-
-    }){
-
-        return await window.layoutRenderer?.renderLayout({
-
-            container,
-
-            section: field,
-
-            context:{
-
-                ...context,
-
-                currentItem: value,
-
-                item: value
-
-            }
-
-        });
-
-    }
-
-});
-
-log(
-    "fieldRenderer inicializado."
-);
-
+    log(`${FILE} inicializado.`);
 
 })();

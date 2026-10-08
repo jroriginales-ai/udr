@@ -1,77 +1,96 @@
-(function(){
+// ======================================================
+// 📁 js/layouts/listLayout.js (Safari Catalina Ready)
+// ======================================================
+// ✅ UNIVERSAL DECLARATIVE RUNTIME
+// ✅ Compatible con layoutRenderer actual
+// ✅ Soporta vistas 'grid' (cards) y 'table'
+// ✅ Registro automático en window.list y window.listLayout
+// ======================================================
+
+(function () {
 
     const FILE = "listLayout.js";
-    
-    const log   = (...a) => window.logger?.info?.(FILE, ...a);
-    const debug = (...a) => window.logger?.debug?.(FILE, ...a);
-    const warn  = (...a) => window.logger?.warn?.(FILE, ...a);
+
+    const log = (...a) => window.logger?.info?.(FILE, ...a);
+    const warn = (...a) => window.logger?.warn?.(FILE, ...a);
     const error = (...a) => window.logger?.error?.(FILE, ...a);
 
     // ==================================================
-    // EXPORT
+    // EXPORT & API
     // ==================================================
-
     const api = {
-        render
-    };    
+        render: render
+    };
 
-    // =====================================================
-    // MAIN
-    // =====================================================
-
-// Dentro de listLayout.js
-
-async function render({ container, section = {}, context = {} }) {
-    const layoutConfig = section || {};
-
-    try {
-        if (!container) return;
-        container.innerHTML = "";
-
-        const items = resolveItems(layoutConfig, context);
-
-        if (!items.length) {
-            warn("Sin elementos para renderizar en listLayout.");
-            return;
+    // Helper para extraer valor con fallback seguro en Safari 13/14
+    function getCellValue(field, itemData) {
+        if (field.resolvedValue !== undefined) return field.resolvedValue;
+        if (field.value !== undefined) return field.value;
+        if (itemData && itemData.__resolved && itemData.__resolved[field.campo] !== undefined) {
+            return itemData.__resolved[field.campo];
         }
-
-        const fields = resolveFields(layoutConfig, items, context);
-
-        const view = String(
-            layoutConfig.view || layoutConfig.tipo || "grid"
-        ).toLowerCase();
-
-        // IMPORTANTE: poner 'return await' para asegurar la renderización en el DOM
-        if (view === "grid" || view === "cards") {
-            return await renderGrid({ container, items, fields, layoutConfig, context });
-        } else {
-            return await renderTable({ container, items, fields, layoutConfig, context });
+        if (itemData && itemData[field.campo] !== undefined) {
+            return itemData[field.campo];
         }
-
-    } catch(e) {
-        error("Error en render de listLayout:", e);
+        return "";
     }
-}
+
+    // =====================================================
+    // MAIN RENDER
+    // =====================================================
+    async function render({ container, section = {}, context = {} } = {}) {
+        const layoutConfig = section || {};
+
+        try {
+            if (!container) return;
+            container.innerHTML = "";
+
+            const items = resolveItems(layoutConfig, context);
+
+            if (!items.length) {
+                warn("Sin elementos para renderizar en listLayout.");
+                return;
+            }
+
+            const fields = resolveFields(layoutConfig, items, context);
+            const view = String(layoutConfig.view || layoutConfig.tipo || "grid").toLowerCase();
+
+            if (view === "grid" || view === "cards") {
+                return await renderGrid({ container: container, items: items, fields: fields, layoutConfig: layoutConfig, context: context });
+            } else {
+                return await renderTable({ container: container, items: items, fields: fields, layoutConfig: layoutConfig, context: context });
+            }
+
+        } catch (e) {
+            error("Error en render de listLayout:", e);
+            if (window.errorHandler?.handle) {
+                window.errorHandler.handle({
+                    error: e,
+                    context: "listLayout",
+                    step: "render"
+                });
+            }
+        }
+    }
 
     // =====================================================
     // RESOLVERS DE DATOS Y CAMPOS
     // =====================================================
-
-    function resolveItems(layoutConfig, context){
+    function resolveItems(layoutConfig, context) {
         if (Array.isArray(layoutConfig.items) && layoutConfig.items.length) {
             return layoutConfig.items;
         }
 
         const datasetKey = layoutConfig.dataset || layoutConfig.dataSource;
-        if (datasetKey && context.datasets?.[datasetKey]?.items) {
+        if (datasetKey && context.datasets && context.datasets[datasetKey] && context.datasets[datasetKey].items) {
             return context.datasets[datasetKey].items;
         }
 
-        if (context.datasets?.data?.items) {
+        if (context.datasets && context.datasets.data && context.datasets.data.items) {
             return context.datasets.data.items;
         }
 
-        if (context.datasets?.main?.items) {
+        if (context.datasets && context.datasets.main && context.datasets.main.items) {
             return context.datasets.main.items;
         }
 
@@ -82,24 +101,24 @@ async function render({ container, section = {}, context = {} }) {
         return [];
     }
 
-    function resolveFields(layoutConfig, items, context){
+    function resolveFields(layoutConfig, items, context) {
         let rawFields = items?.[0]?.fields || layoutConfig.fields || sectionFieldsFromContext(layoutConfig, context);
 
         if (!rawFields || !rawFields.length) {
             const sampleItem = items?.[0]?.value || items?.[0];
             if (sampleItem && typeof sampleItem === "object") {
                 rawFields = Object.keys(sampleItem)
-                    .filter(key => key !== "__resolved")
-                    .map(key => ({ campo: key, label: key }));
+                    .filter(function (key) { return key !== "__resolved"; })
+                    .map(function (key) { return { campo: key, label: key }; });
             }
         }
 
         return expandFields(rawFields || []);
     }
 
-    function sectionFieldsFromContext(layoutConfig, context){
+    function sectionFieldsFromContext(layoutConfig, context) {
         const schemaName = layoutConfig.schema;
-        if (schemaName && context.schemas?.[schemaName]?.fields) {
+        if (schemaName && context.schemas && context.schemas[schemaName] && context.schemas[schemaName].fields) {
             return context.schemas[schemaName].fields;
         }
         return [];
@@ -108,9 +127,8 @@ async function render({ container, section = {}, context = {} }) {
     // =====================================================
     // VISIBLE FIELDS
     // =====================================================
-
-    function buildVisibleFields(fields = []){
-        return fields.filter(field => {
+    function buildVisibleFields(fields = []) {
+        return fields.filter(function (field) {
             return (
                 field.hidden !== true &&
                 field.visible !== false &&
@@ -122,50 +140,43 @@ async function render({ container, section = {}, context = {} }) {
     // =====================================================
     // NAVIGATION
     // =====================================================
-
-    function applyNavigation({ element, item }){
-        if(
+    function applyNavigation({ element, item } = {}) {
+        if (
             !element ||
-            !window.navigateRenderer?.isNavigation(item?.navigation)
-        ){
+            !window.navigateRenderer?.isNavigation?.(item?.navigation)
+        ) {
             return;
         }
 
         element.style.cursor = "pointer";
-        element.onclick = async ()=>{
-            await window.navigateRenderer.navigate(item.navigation);
+        element.onclick = async function () {
+            try {
+                await window.navigateRenderer.navigate(item.navigation);
+            } catch (err) {
+                error("Error al navegar desde listLayout:", err);
+            }
         };
     }
 
     // =====================================================
-    // TABLE
+    // TABLE VIEW
     // =====================================================
-
-    async function renderTable({
-        container,
-        items,
-        fields,
-        layoutConfig,
-        context
-    }){
-
+    async function renderTable({ container, items, fields, layoutConfig, context }) {
         const table = document.createElement("table");
         table.className = "list-table";
 
         const visibleFields = buildVisibleFields(fields);
 
-        //------------------------------------------------
         // HEADER
-        //------------------------------------------------
-
         const thead = document.createElement("thead");
         const tr = document.createElement("tr");
 
-        for(const field of visibleFields){     
-            const th = document.createElement("th");
+        for (var i = 0; i < visibleFields.length; i++) {
+            var field = visibleFields[i];
+            var th = document.createElement("th");
             th.className = "list-header";
 
-            if(field.columnWidth){
+            if (field.columnWidth) {
                 th.style.width = field.columnWidth;
                 th.style.minWidth = field.columnWidth;
                 th.style.maxWidth = field.columnWidth;
@@ -178,53 +189,50 @@ async function render({ container, section = {}, context = {} }) {
         thead.appendChild(tr);
         table.appendChild(thead);
 
-        //------------------------------------------------
         // BODY
-        //------------------------------------------------
-
         const tbody = document.createElement("tbody");
 
-        for(const item of items){
-            const row = document.createElement("tr");
-            row.className = "list-row";          
+        for (var j = 0; j < items.length; j++) {
+            var item = items[j];
+            var row = document.createElement("tr");
+            row.className = "list-row";
 
-            const fieldsToRender = buildVisibleFields(
+            var fieldsToRender = buildVisibleFields(
                 expandFields(item.fields || fields)
             );
-                            
-            for(const field of fieldsToRender){
-                const td = document.createElement("td");
+
+            for (var k = 0; k < fieldsToRender.length; k++) {
+                var f = fieldsToRender[k];
+                var td = document.createElement("td");
                 td.className = "list-cell";
-            
-                if(field.columnWidth){
-                    td.style.width = field.columnWidth;
+
+                if (f.columnWidth) {
+                    td.style.width = f.columnWidth;
                 }
 
-                // Extracción de valor con fallback dinámico
-                const itemData = item?.value || item;
-                const cellValue = 
-                    field.resolvedValue ?? 
-                    field.value ?? 
-                    itemData?.__resolved?.[field.campo] ?? 
-                    itemData?.[field.campo];
-            
-                await window.fieldRenderer?.render({
-                    container: td,
-                    value: cellValue,
-                    field,
-                    mode: layoutConfig.mode || "display",
-                    context:{
-                        ...context,
-                        item,
-                        currentItem: item,
-                        currentField: field
-                    }
-                });
-            
+                var itemData = item?.value || item;
+                var cellValue = getCellValue(f, itemData);
+
+                if (window.fieldRenderer?.render) {
+                    await window.fieldRenderer.render({
+                        container: td,
+                        value: cellValue,
+                        field: f,
+                        mode: layoutConfig.mode || "display",
+                        context: Object.assign({}, context, {
+                            item: item,
+                            currentItem: item,
+                            currentField: f
+                        })
+                    });
+                } else {
+                    td.innerText = String(cellValue ?? "");
+                }
+
                 row.appendChild(td);
             }
 
-            applyNavigation({ element: row, item });
+            applyNavigation({ element: row, item: item });
             tbody.appendChild(row);
         }
 
@@ -233,89 +241,87 @@ async function render({ container, section = {}, context = {} }) {
     }
 
     // =====================================================
-    // GRID
+    // GRID / CARDS VIEW
     // =====================================================
-
-    async function renderGrid({
-        container,
-        items,
-        fields,
-        layoutConfig,
-        context
-    }){
-
+    async function renderGrid({ container, items, fields, layoutConfig, context }) {
         const grid = document.createElement("div");
         grid.className = "list-grid";
 
-        for(const item of items){
-            const card = document.createElement("div");
+        for (var i = 0; i < items.length; i++) {
+            var item = items[i];
+            var card = document.createElement("div");
             card.className = "list-card";
 
-            const fieldsToRender = item.fields || fields;
+            var fieldsToRender = item.fields || fields;
 
-            for(const field of fieldsToRender){
-                if(field.hidden){
-                    continue;
-                }
+            for (var j = 0; j < fieldsToRender.length; j++) {
+                var field = fieldsToRender[j];
+                if (field.hidden) continue;
 
-                const row = document.createElement("div");
+                var row = document.createElement("div");
                 row.className = "list-card-row";
 
-                if(field.showLabel !== false){
-                    const label = document.createElement("div");
+                if (field.showLabel !== false) {
+                    var label = document.createElement("div");
                     label.className = "list-card-label";
-                    label.innerText = field.label || field.campo;
+                    label.innerText = field.label || field.campo || "";
                     row.appendChild(label);
                 }
 
-                const valueDiv = document.createElement("div");
+                var valueDiv = document.createElement("div");
                 valueDiv.className = "list-card-value";
 
-                const itemData = item?.value || item;
-                const cellValue = 
-                    field.resolvedValue ?? 
-                    field.value ?? 
-                    itemData?.__resolved?.[field.campo] ?? 
-                    itemData?.[field.campo];
+                var itemData = item?.value || item;
+                var cellValue = getCellValue(field, itemData);
 
-                await window.fieldRenderer?.render({
-                    container: valueDiv,
-                    value: cellValue,
-                    field,
-                    mode: layoutConfig.mode || "display",
-                    context:{
-                        ...context,
-                        item,
-                        currentItem: item,
-                        currentField: field
-                    }
-                });
+                if (window.fieldRenderer?.render) {
+                    await window.fieldRenderer.render({
+                        container: valueDiv,
+                        value: cellValue,
+                        field: field,
+                        mode: layoutConfig.mode || "display",
+                        context: Object.assign({}, context, {
+                            item: item,
+                            currentItem: item,
+                            currentField: field
+                        })
+                    });
+                } else {
+                    valueDiv.innerText = String(cellValue ?? "");
+                }
 
                 row.appendChild(valueDiv);
                 card.appendChild(row);
             }
 
-            applyNavigation({ element: card, item });
+            applyNavigation({ element: card, item: item });
             grid.appendChild(card);
         }
 
         container.appendChild(grid);
     }
 
-    function expandFields(fields = [], parentLabel = null){
+    // =====================================================
+    // EXPAND FIELDS (RECURSIVO)
+    // =====================================================
+    function expandFields(fields = [], parentLabel = null) {
         const result = [];
 
-        for(const field of fields){
-            const current = { ...field };
+        for (var i = 0; i < fields.length; i++) {
+            var field = fields[i];
+            var current = Object.assign({}, field);
 
-            if(parentLabel && !current.label){
-                current.label = `${parentLabel} - ${current.campo}`;
+            if (parentLabel && !current.label) {
+                current.label = parentLabel + " - " + (current.campo || "");
             }
 
             result.push(current);
 
-            if(Array.isArray(current.fields) && current.fields.length){
-                result.push(...expandFields(current.fields, current.label));
+            if (Array.isArray(current.fields) && current.fields.length) {
+                var expandedChildren = expandFields(current.fields, current.label);
+                for (var j = 0; j < expandedChildren.length; j++) {
+                    result.push(expandedChildren[j]);
+                }
             }
         }
 
@@ -332,6 +338,6 @@ async function render({ container, section = {}, context = {} }) {
         window.layoutRenderer.registerLayout("list", api);
     }
 
-    log("✅ listLayout registrado correctamente");
+    log("✅ listLayout registrado correctamente.");
 
 })();

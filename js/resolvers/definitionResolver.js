@@ -1,114 +1,58 @@
 // ======================================================
-// 📁 js/resolvers/definitionResolver.js
+// 📁 js/resolvers/definitionResolver.js (Safari Catalina Ready)
 // ======================================================
 
-(function(){
+(function () {
 
     const FILE = "definitionResolver";
-    
-    const log   = (...a)=>window.logger?.info?.(FILE,...a);
-    const error = (...a)=>window.logger?.error?.(FILE,...a);
-    
-    window.definitionResolver = {
+    const log = (...a) => window.logger?.info?.(FILE, ...a);
 
+    window.definitionResolver = {
         execute,
         resolve
-    
     };
-    
+
     // ======================================================
-    // EXECUTE
+    // EXECUTE (Paso del Pipeline / Resolver)
     // ======================================================
+    async function execute({ context = {} } = {}) {
+        // Obtiene la sección 'definition' del JSON (_root.definition)
+        const definition = resolve({ context });
 
-    async function execute({
+        context.definition = definition;
 
-        context = {}
+        // Determina el nombre del perfil activo (por defecto: 'runtime')
+        const profileName =
+            context.profile ||
+            context.context?.profile ;
 
-    } = {}){
+        const profiles = definition?.startup?.profiles || {};
 
-        try{
+        context.profile = profileName;
 
-            const definition = resolve({
+        // Extrae la configuración específica del perfil (pipeline, layouts, etc.)
+        context.profileDefinition = profiles[profileName] || null;
 
-                context
-
-            });
-
-            context.definition = definition;
-            context.definitions = definition;
-
-            // --------------------------------------------------
-            // RESOLVER PROFILE DEFINITION
-            // --------------------------------------------------
-            const profileName = 
-                context.profile || 
-                context.context?.profile || 
-                "runtime";
-
-            const profiles = 
-                definition?.startup?.profiles || {};
-
-            context.profile = profileName;
-            
-            // Asigna la configuración específica del perfil (ej. runtime)
-            context.profileDefinition = 
-                profiles[profileName] || null;
-
-            log(`Perfil resuelto: '${profileName}'`, context.profileDefinition);
-
-            return definition;
-
-        }
-        catch(e){
-
-            error(
-                "execute:",
-                e
-            );
-
-            throw e;
-
+        if (!context.profileDefinition) {
+            throw new Error(`El perfil '${profileName}' no está definido en 'definition.startup.profiles'.`);
         }
 
+        log(`Perfil resuelto con éxito: '${profileName}'`, context.profileDefinition);
+
+        return definition;
     }
 
     // ======================================================
-    // RESOLVE
+    // RESOLVE (Extracción directa)
     // ======================================================
-    
-    function resolve({
+    function resolve({ context = {} } = {}) {
+        const definition = context?.root?.definition;
 
-        context = {}
-    
-    } = {}){
-    
-        try{
-    
-            const definition =
-                context?.root?.definition;
-    
-            if(!definition){
-    
-                throw new Error(
-                    "No existe la sección 'definition'."
-                );
-    
-            }
-    
-            return definition;
-    
+        if (!definition) {
+            throw new Error("No se encontró la sección 'definition' dentro del objeto raíz (_root).");
         }
-        catch(e){
-    
-            error(
-                "resolve:",
-                e
-            );
-    
-            throw e;
-    
-        }
-    
+
+        return definition;
     }
-        
+
 })();

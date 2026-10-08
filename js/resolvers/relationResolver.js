@@ -1,726 +1,165 @@
 // ======================================================
-// 📁 js/runtime/relationResolver.js
+// 📁 js/runtime/relationResolver.js (Safari Catalina Ready)
 // ======================================================
 // UNIVERSAL DECLARATIVE RUNTIME
 //
-// Resuelve relaciones declarativas:
-//
+// Resuelve relaciones declarativas entre datasets:
 // {
-//     source:{
-//         file,
-//         path
-//     },
-//     where:{
-//         campo:"{campoLocal}"
-//     }
+//     source: { file, path },
+//     where: { campo: "{campoLocal}" }
 // }
-//
-// Reemplaza el objeto de relación por el registro
-// relacionado.
 // ======================================================
 
-(function(){
+(function () {
 
     const FILE = "relationResolver.js";
-    
-    const log   = (...a)=>window.logger?.info?.(FILE,...a);
-    const debug = (...a)=>window.logger?.debug?.(FILE,...a);
-    const warn  = (...a)=>window.logger?.warn?.(FILE,...a);
-    const error = (...a)=>window.logger?.error?.(FILE,...a);
-    
+
+    const log = (...a) => window.logger?.info?.(FILE, ...a);
+    const warn = (...a) => window.logger?.warn?.(FILE, ...a);
+    const error = (...a) => window.logger?.error?.(FILE, ...a);
+
     window.relationResolver = {
-    
         execute,
-        resolve
-    
+        resolve,
+        resolveRowRelations,
+        loadRelation,
+        isRelation
     };
-    
 
-// ======================================================
-// EXECUTE
-// ======================================================
-
-async function execute({
-
-    context = {}
-
-} = {}){
-
-    try{
-
-        return await resolve({
-
-            context
-        
-        });
-
-    }
-    catch(e){
-
-        error(
-            "execute:",
-            e
-        );
-
-        throw e;
-
+    // Helper de clonado compatible con Safari 13/14 (macOS Catalina)
+    function clone(value) {
+        if (value == null) return value;
+        if (typeof window.structuredClone === "function") {
+            return window.structuredClone(value);
+        }
+        return JSON.parse(JSON.stringify(value));
     }
 
-}    
-    //==================================================
+    // ======================================================
+    // EXECUTE (Paso del Pipeline / Resolver)
+    // ======================================================
+    async function execute({ context = {} } = {}) {
+        await resolve({ context: context });
+        log("Relaciones resueltas correctamente.");
+        return context;
+    }
+
+    // ======================================================
     // ENTRY POINT
-    //==================================================
-    
-    async function resolve({
-    
-        context
-    
-    } = {}){
-    
-        try{
-    
-            const dataset =
-    
-                context
-                ?.datasets
-                ?.data
-                ?.value;
-    
-            if(!Array.isArray(dataset)){
+    // ======================================================
+    async function resolve({ context = {} } = {}) {
+        const dataset = context?.datasets?.data?.value;
 
-
-
-                return;
-            }
-
-            // console.log(
-            //     "CONTEXT KEYS:",
-            //     Object.keys(context)
-            // );
-            
-            // console.log(
-            //     "SCHEMAS:",
-            //     context.schemas
-            // );
-            
-            // console.log(
-            //     "LAYOUT:",
-            //     context.layout
-            // );
-            
-            // console.log(
-            //     "DATASETS:",
-            //     context.datasets
-            // );       
-
-            // console.log(
-            //     "META:",
-            //     context.datasets?.meta
-            // );
-            
-            // console.log(
-            //     "LAYOUT DATASET:",
-            //     context.datasets?.layout
-            // );        
-            
-            // console.log(
-            //     "META VALUE:",
-            //     context.datasets?.meta?.value
-            // );
-            
-            // console.log(
-            //     "META SCHEMA:",
-            //     context.datasets?.meta?.schema
-            // );            
-    
-            // console.log(
-            //     "DEFINITION:",
-            //     context.definition
-            // );
-            
-            // console.log(
-            //     "DEFINITIONS:",
-            //     context.definitions
-            // );
-
-            // console.log(
-            //     "DATA DEFINITION:",
-            //     context.datasets?.data?.definition
-            // );
-            
-            // console.log(
-            //     "META DEFINITION:",
-            //     context.datasets?.meta?.definition
-            // );      
-            
-            // console.log(
-            //     "2) META VALUE:",
-            //     JSON.stringify(
-            //         context.datasets?.meta?.value,
-            //         null,
-            //         2
-            //     )
-            // );            
-
-            // console.log(
-            //     "DATA SCHEMA:",
-            //     context.datasets?.data?.schema
-            // );            
-
-            // console.log(
-            //     "DATA SCHEMA:",
-            //     JSON.stringify(
-            //         context.datasets?.data?.schema,
-            //         null,
-            //         2
-            //     )
-            // );            
-
-            const schema =
-
-            context
-                ?.datasets
-                ?.data
-                ?.schema
-        
-            ||
-        
-            [];
-
-            for(const row of dataset){
-
-                await resolveRowRelations({
-            
-                    row,
-            
-                    schema
-            
-                });
-            
-            }            
-
-            // for(const row of dataset){
-    
-            //     await resolveNode(
-            //         row,
-            //         row
-            //     );
-    
-            // }
-
-            // debug(
-            //     "dataset after relations:",
-            //     dataset
-            // );            
-    
-        }
-        catch(e){
-    
-            error(e);
-    
-        }
-    
-    }
-    
-    //==================================================
-    // RECURSIVE WALK
-    //==================================================
-    
-    async function resolveNode(
-    
-        node,
-        rootRow
-    
-    ){
-    
-        if(!node){
+        if (!Array.isArray(dataset) || dataset.length === 0) {
             return;
         }
-    
-        if(Array.isArray(node)){
-    
-            for(const item of node){
-    
-                await resolveNode(
-                    item,
-                    rootRow
-                );
-    
-            }
-    
 
-            return;
-    
+        const schema = context?.datasets?.data?.schema || [];
+
+        // Procesar las relaciones de cada fila del dataset
+        for (var i = 0; i < dataset.length; i++) {
+            await resolveRowRelations({
+                row: dataset[i],
+                schema: schema
+            });
         }
-    
-
-        if(typeof node !== "object"){
-            return;
-        }
-    
-        for(const key of Object.keys(node)){
-    
-            let value = node[key];
-    
-            //------------------------------------------
-            // RELATION
-            //------------------------------------------
-    
-            if(isRelation(value)){
-
-                // debug(
-                //     "RELATION DETECTED:",
-                //     key,
-                //     value
-                // );
-            
-                const record =
-                    await loadRelation(
-                        value,
-                        rootRow
-                    );
-            
-                // debug(
-                //     "RELATION RESULT:",
-                //     key,
-                //     record
-                // );
-            
-                if(record){
-
-                    //--------------------------------------------------
-                    // Todas las relaciones viven en la fila raíz
-                    //--------------------------------------------------
-                
-                    rootRow.__resolved ??= {};
-                
-                    rootRow.__resolved[key] = record;
-                    
-                
-                    //--------------------------------------------------
-                    // Reemplaza el valor para seguir resolviendo
-                    //--------------------------------------------------
-                
-                    value = record;
-                
-                }
-    
-            }
-    
-            await resolveNode(
-    
-                value,
-    
-                rootRow
-    
-            );
-    
-        }
-    
     }
-    
-    //==================================================
-    // RELATION DETECTOR
-    //==================================================
-    
-    function isRelation(value){
-    
-        return (
-    
-            value &&
-    
-            typeof value === "object" &&
-    
-            value.source?.file &&
-    
-            value.source?.path &&
-    
-            value.where &&
-    
-            typeof value.where === "object"
-    
-        );
-    
-    }
-    
-    async function loadRelation(
 
-        relation,
-    
-        row = {}
-    
-    ){
-    
-        try{
-    
-            // debug(
-            //     "========================================"
-            // );
-    
-            // debug(
-            //     "LOAD RELATION START"
-            // );
-    
-            // debug(
-            //     "relation:",
-            //     relation
-            // );
-    
-            // debug(
-            //     "row:",
-            //     row
-            // );
-    
-            //--------------------------------------------------
-            // Ejecuta runtime relacionado
-            //--------------------------------------------------
-    
-            const relationContext =
-    
-                await window.runtime.init({
-    
-                    file:
-                        relation.source.file,
-    
-                    path:
-                        relation.source.path,
-    
-                    profile:
-                        "relation",
-    
-                    context:{}
-    
-                });
+    // ======================================================
+    // RESOLVE ROW RELATIONS
+    // ======================================================
+    async function resolveRowRelations({ row = {}, schema = [] } = {}) {
+        if (!row || !Array.isArray(schema)) return;
 
-            //     debug(
-            //         "relationContext keys:",
-            //         Object.keys(relationContext || {})
-            //     );
-                
-            //     debug(
-            //         "relationContext.layout:",
-            //         relationContext?.layout
-            //     );
+        for (var i = 0; i < schema.length; i++) {
+            var field = schema[i];
 
-    
-            // debug(
-            //     "relationContext:",
-            //     relationContext
-            // );
-    
-            //--------------------------------------------------
-            // DATASET
-            //--------------------------------------------------
-    
-            const dataset =
-    
-                relationContext
-                    ?.datasets
-                    ?.data
-                    ?.value
-    
-                ||
-    
-                [];
-    
-            // debug(
-            //     "dataset length:",
-            //     dataset.length
-            // );
-    
-            // debug(
-            //     "dataset sample:",
-            //     dataset[0]
-            // );
-    
-            //--------------------------------------------------
-            // LAYOUT
-            //--------------------------------------------------
-    
-            // const layoutItems =
-    
-            //     relationContext
-            //         ?.layout
-            //         ?.items
-    
-            //     ||
-    
-            //     [];
-    
-            // debug(
-            //     "layout:",
-            //     relationContext?.layout
-            // );
-    
-            // debug(
-            //     "layoutItems length:",
-            //     layoutItems.length
-            // );
-    
-            // debug(
-            //     "layoutItems sample:",
-            //     layoutItems[0]
-            // );
-    
-            //--------------------------------------------------
-            // VALIDATION
-            //--------------------------------------------------
-    
-            // if(
-    
-            //     !Array.isArray(dataset) ||
-    
-            //     !Array.isArray(layoutItems)
-    
-            // ){
-    
-            //     warn(
-            //         "dataset/layoutItems invalid",
-            //         {
-            //             dataset,
-            //             layoutItems
-            //         }
-            //     );
-    
-            //     return null;
-    
-            // }
-    
-            //--------------------------------------------------
-            // BUILD WHERE
-            //--------------------------------------------------
-    
-            const where = {};
-    
-            for(const key of Object.keys(relation.where)){
-    
-                let value =
-                    relation.where[key];
-    
-                if(
-    
-                    typeof value === "string" &&
-    
-                    value.startsWith("{") &&
-    
-                    value.endsWith("}")
-    
-                ){
-    
-                    const field =
-    
-                        value.slice(1,-1);
-    
-                    // debug(
-                    //     "resolving token:",
-                    //     field
-                    // );
-    
-                    value =
-    
-                        window.pathResolver
-                            ?.getByPath?.(
-                                row,
-                                field
-                            )
-    
-                        ??
-    
-                        row[field];
-    
-                }
-    
-                where[key] =
-                    value;
-    
+            if (!field || !field.relation) continue;
+
+            var record = await loadRelation(field.relation, row);
+
+            if (!record) continue;
+
+            // Compatibilidad Safari Catalina (Sustituye a '??=')
+            if (!row.__resolved) {
+                row.__resolved = {};
             }
-    
-            // debug(
-            //     "where:",
-            //     where
-            // );
-    
-            //--------------------------------------------------
-            // SEARCH
-            //--------------------------------------------------
-    
-            const index =
-    
-                dataset.findIndex(item=>{
-    
-                    return Object.keys(where)
-    
-                        .every(key=>
-    
-                            String(item[key])
-    
-                            ===
-    
-                            String(where[key])
-    
-                        );
-    
-                });
-    
-            // debug(
-            //     "index:",
-            //     index
-            // );
-    
-            if(index < 0){
-    
-                warn(
-                    "relation record not found",
-                    where
-                );
-    
+
+            row.__resolved[field.campo] = record;
+        }
+    }
+
+    // ======================================================
+    // LOAD RELATION
+    // ======================================================
+    async function loadRelation(relation, row = {}) {
+        if (!isRelation(relation)) return null;
+
+        try {
+            // Ejecuta el runtime en el contexto relacionado
+            const relationContext = await window.runtime?.init?.({
+                file: relation.source.file,
+                path: relation.source.path,
+                profile: "relation",
+                context: {}
+            });
+
+            const dataset = relationContext?.datasets?.data?.value || [];
+
+            if (!Array.isArray(dataset) || dataset.length === 0) {
                 return null;
-    
             }
-    
-            //--------------------------------------------------
-            // FOUND RECORD
-            //--------------------------------------------------
-    
-            // debug(
-            //     "dataset",
-            //     dataset[index]
-            // );
-    
-            // debug(
-            //     "layoutItems",
-            //     layoutItems[index]
-            // );
-    
-            // const result =
-    
-            //     clone(
-            //         layoutItems[index]
-            //     );
-    
-                // const result =
-                // clone(
-                //     dataset[index]
-                // );
 
-                const result = dataset[index];
+            // Construir criterio 'where'
+            const where = {};
+            const keys = Object.keys(relation.where);
 
-            // debug(
-            //     "result:",
-            //     result
-            // );
-    
-            // debug(
-            //     "LOAD RELATION END"
-            // );
-    
-            // debug(
-            //     "========================================"
-            // );
-    
-            return result;
-    
-        }
-        catch(e){
-    
-            error(
-                "loadRelation error:",
-                e
-            );
-    
+            for (var i = 0; i < keys.length; i++) {
+                var key = keys[i];
+                var value = relation.where[key];
+
+                if (typeof value === "string" && value.startsWith("{") && value.endsWith("}")) {
+                    var fieldName = value.slice(1, -1);
+                    value = window.pathResolver?.getByPath?.(row, fieldName) ?? row[fieldName];
+                }
+
+                where[key] = value;
+            }
+
+            // Buscar en el dataset de destino
+            const target = dataset.find(function (item) {
+                return Object.keys(where).every(function (k) {
+                    return String(item[k]) === String(where[k]);
+                });
+            });
+
+            if (!target) {
+                warn("Registro relacionado no encontrado para:", where);
+                return null;
+            }
+
+            return clone(target);
+
+        } catch (e) {
+            error("loadRelation:", e);
             return null;
-    
         }
-    
     }
 
-//==================================================
-// CLONE
-//==================================================
-
-function clone(value){
-
-    if(
-
-        value === null ||
-
-        value === undefined
-
-    ){
-
-        return value;
-
+    // ======================================================
+    // RELATION DETECTOR
+    // ======================================================
+    function isRelation(value) {
+        return (
+            value != null &&
+            typeof value === "object" &&
+            value.source?.file &&
+            value.source?.path &&
+            value.where &&
+            typeof value.where === "object"
+        );
     }
 
-    return JSON.parse(
+    log(`${FILE} inicializado correctamente.`);
 
-        JSON.stringify(value)
-
-    );
-
-}    
-    
-async function resolveRowRelations({
-
-    row,
-
-    schema = []
-
-}){
-
-    for(const field of schema){
-
-        if(!field.relation){
-            continue;
-        }
-
-        const record =
-            await loadRelation(
-
-                field.relation,
-
-                row
-
-            );
-
-        if(!record){
-            continue;
-        }
-
-        row.__resolved ??= {};
-
-        row.__resolved[
-            field.campo
-        ] = record;
-
-        // console.log(
-        //     "ROW === ITEM.VALUE ?",
-        //     row
-        // );        
-
-        // console.log(
-        //     "FIELD RELATION:",
-        //     field.campo
-        // );
-        
-        // console.log(
-        //     "ROW VALUE:",
-        //     row[field.campo]
-        // );
-        
-        // console.log(
-        //     "RECORD:",
-        //     record
-        // );        
-
-
-        // console.log(
-        //     "ROW.__RESOLVED:",
-        //     row.__resolved
-        // );
-
-    }
-
-}
-
-    })();
+})();

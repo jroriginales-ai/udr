@@ -1,91 +1,78 @@
 // ======================================================
-// 📁 js/app.js
+// 📁 js/app.js (Safari Catalina Ready)
 // ✅ UNIVERSAL DECLARATIVE RUNTIME
 // ✅ Compatible con window.router
 // ✅ Sin ES Modules
 // ======================================================
 
-(function(){
+(function () {
 
   const FILE = "app.js";
 
-  function log(...a){
-    window.logger?.info?.(FILE, ...a);
-  }
+  const log = (...a) => window.logger?.info?.(FILE, ...a);
+  const warn = (...a) => window.logger?.warn?.(FILE, ...a);
 
-  function error(...a){
-    window.logger?.error?.(FILE, ...a);
-  }
-
-  function getRuntimeParams(){
-
-    const search =
-        new URLSearchParams(
-            window.location.search
-        );
-
+  // ==========================================
+  // PARSER DE PARÁMETROS URL
+  // ==========================================
+  function getRuntimeParams() {
+    const search = new URLSearchParams(window.location.search);
     const context = {};
 
-    for(const [key, value] of search.entries()){
-
-        context[key] = value;
-
-    }
+    // Iteración compatible con Safari 13+ (macOS Catalina)
+    search.forEach(function (value, key) {
+      context[key] = value;
+    });
 
     return {
-
-        file:
-            search.get("file"),
-
-        path:
-            search.get("path"),
-
-        profile:
-            search.get("profile"),
-
-        context
-
+      file: search.get("file"),
+      path: search.get("path"),
+      profile: search.get("profile"),
+      context: context
     };
+  }
 
-}
-
-  async function startApp(){
-
+  // ==========================================
+  // INICIALIZACIÓN DE LA APLICACIÓN
+  // ==========================================
+  async function startApp() {
     try {
+      log("Iniciando Universal Declarative Runtime...");
 
-      log("Iniciando runtime...");
-
-      if (!window.runtime){
-        throw new Error(
-          "runtime no disponible"
-        );
+      if (!window.runtime || typeof window.runtime.init !== "function") {
+        throw new Error("El módulo 'window.runtime' no está disponible o no se ha cargado.");
       }
 
       const params = getRuntimeParams();
+      log("Parámetros de ejecución extraídos:", params);
 
-      log(
-        "Runtime params:",
-        params
-      );
+      // Inicia el ciclo de vida del runtime
+      await window.runtime.init(params);
 
-      await window.runtime.init(
-        params
-      );
+      log("Runtime e interfaz inicializados con éxito.");
 
-      log("Runtime iniciado");
-
-    } catch(e){
-
-      error(
-        "startApp:",
-        e
-      );
+    } catch (e) {
+      // Escalación al sistema centralizado de errores
+      if (window.errorHandler?.handle) {
+        window.errorHandler.handle({
+          error: e,
+          context: "AppBootstrap",
+          step: "startApp",
+          fatal: true
+        });
+      } else {
+        window.logger?.error?.(FILE, "startApp:", e);
+      }
     }
   }
 
-  document.addEventListener(
-    "DOMContentLoaded",
-    startApp
-  );
+  // ==========================================
+  // DISPARADOR
+  // ==========================================
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", startApp);
+  } else {
+    startApp();
+  }
 
 })();

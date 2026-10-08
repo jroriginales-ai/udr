@@ -1,165 +1,75 @@
 // ======================================================
-// 📁 js/core/dataResolver.js
+// 📁 js/core/dataResolver.js (Safari Catalina Ready)
 // ======================================================
 // UNIVERSAL DECLARATIVE RUNTIME
 //
-// RESPONSABILIDAD ÚNICA
+// RESPONSABILIDAD ÚNICA:
 // - Resolver información dentro de un JSON ya cargado.
 //
-// NO HACE
-// - fetch de archivos
-// - cargar schemas
-// - resolver datasets
-// - resolver relaciones
-// - navegación
-// - render
+// NO HACE:
+// - fetch de archivos / cargar schemas / resolver datasets / navegación
 // ======================================================
 
-(function(){
+(function () {
 
     const FILE = "dataResolver.js";
+    const log = (...a) => window.logger?.info?.(FILE, ...a);
 
-    const error =
-        (...a)=>window.logger?.error?.(FILE,...a);
-
-    // ==================================================
-    // CACHE
-    // ==================================================
-
-    const CACHE =
-        Object.create(null);
+    // Cache interno aislado
+    let CACHE = Object.create(null);
 
     // ==================================================
     // EXPORTS
     // ==================================================
-
     window.dataResolver = {
-
         resolve,
-
         clearCache,
-
         getCache
-
     };
 
     // ==================================================
-    // RESOLVE
+    // RESOLVE (Extracción por jsonPath con Caché)
     // ==================================================
-    // Devuelve cualquier estructura ubicada
-    // mediante un jsonPath dentro del root.
-    // ==================================================
-
     async function resolve({
-
         root = null,
-
         jsonPath = null
+    } = {}) {
 
-    } = {}){
+        if (!root) return null;
 
-        try{
-
-            if(!root){
-                return null;
-            }
-
-            //------------------------------------------------
-            // ROOT COMPLETO
-            //------------------------------------------------
-
-            if(
-                !jsonPath ||
-                jsonPath === ""
-            ){
-
-                return root;
-
-            }
-
-            //------------------------------------------------
-            // CACHE
-            //------------------------------------------------
-
-            const cacheKey =
-
-                jsonPath;
-
-            if(
-                CACHE[
-                    cacheKey
-                ] !== undefined
-            ){
-
-                return CACHE[
-                    cacheKey
-                ];
-
-            }
-
-            //------------------------------------------------
-            // PATH
-            //------------------------------------------------
-
-            const value =
-
-                window.pathResolver
-                ?.getByPath(
-
-                    root,
-
-                    jsonPath
-
-                )
-
-                ??
-
-                null;
-
-            CACHE[
-                cacheKey
-            ] = value;
-
-            return value;
-
-        }
-        catch(e){
-
-            error(
-                "resolve:",
-                e
-            );
-
-            return null;
-
+        // 1. Root Completo
+        if (!jsonPath || jsonPath === "") {
+            return root;
         }
 
+        // 2. Retorno desde Caché
+        const cacheKey = String(jsonPath).trim();
+
+        if (CACHE[cacheKey] !== undefined) {
+            return CACHE[cacheKey];
+        }
+
+        // 3. Extracción vía pathResolver
+        const value = window.pathResolver?.getByPath?.(root, jsonPath) ?? null;
+
+        // 4. Guardar en Caché
+        CACHE[cacheKey] = value;
+
+        return value;
     }
 
     // ==================================================
-    // CACHE
+    // CACHE MANAGEMENT
     // ==================================================
-
-    function clearCache(){
-
-        Object.keys(
-            CACHE
-        ).forEach(
-
-            key=>delete CACHE[key]
-
-        );
-
+    function clearCache() {
+        CACHE = Object.create(null);
+        log("Caché limpiado correctamente.");
     }
 
-    function getCache(){
-
-        return {
-
-            ...CACHE
-
-        };
-
+    function getCache() {
+        return Object.assign(Object.create(null), CACHE);
     }
+
+    log(`${FILE} inicializado correctamente.`);
 
 })();

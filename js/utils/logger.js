@@ -1,63 +1,48 @@
 // ======================================================
 // 📁 js/core/logger.js
-// ✅ LOGGER v2 (FULL: debug, info, warn, error)
+// ✅ LOGGER v3 (Sin redundancia de switch)
 // ======================================================
 
-(function(){
+(function () {
 
     const FILE = "logger.js";
-  
+
     const LEVELS = {
-      debug: "DEBUG",
-      info: "INFO",
-      warn: "WARN",
-      error: "ERROR"
+        debug: "DEBUG",
+        info:  "INFO",
+        warn:  "WARN",
+        error: "ERROR"
     };
-  
-    function now(){
-      const d = new Date();
-      return d.toISOString().replace("T", " ").replace("Z", "");
+
+    function now() {
+        return new Date().toISOString().replace("T", " ").replace("Z", "");
     }
-  
-    function log(level, file, ...args){
-  
-      const prefix = `[${now()}] [${file}] [${LEVELS[level]}]`;
-  
-      switch(level){
-  
-        case "debug":
-          if (window.DEBUG){
-            console.log(prefix, ...args);
-          }
-          break;
-  
-        case "info":
-          console.log(prefix, ...args);
-          break;
-  
-        case "warn":
-          console.warn(prefix, ...args);
-          break;
-  
-        case "error":
-          console.error(prefix, ...args);
-          break;
-      }
+
+    function log(level, file, ...args) {
+        // Control de nivel DEBUG global
+        if (level === "debug" && !window.DEBUG) {
+            return;
+        }
+
+        const prefix = `[${now()}] [${file}] [${LEVELS[level] || level.toUpperCase()}]`;
+        
+        // Mapeo dinámico: llama a console.debug, console.info, console.warn o console.error
+        const consoleMethod = console[level] ? level : "log";
+        
+        console[consoleMethod](prefix, ...args);
     }
-  
-    // 🔥 ASEGURAR QUE EXISTEN TODOS LOS MÉTODOS
+
     window.logger = {
-      debug: (file, ...args) => log("debug", file, ...args),
-      info:  (file, ...args) => log("info",  file, ...args),
-      warn:  (file, ...args) => log("warn",  file, ...args),
-      error: (file, ...args) => log("error", file, ...args)
+        debug: (file, ...args) => log("debug", file, ...args),
+        info:  (file, ...args) => log("info",  file, ...args),
+        warn:  (file, ...args) => log("warn",  file, ...args),
+        error: (file, ...args) => log("error", file, ...args)
     };
-  
-    // 🔥 DEBUG FLAG GLOBAL
-    if (window.DEBUG === undefined){
-      window.DEBUG = true;
+
+    if (window.DEBUG === undefined) {
+        window.DEBUG = true;
     }
-  
-    console.log(`[${now()}] [${FILE}] [INFO] Logger inicializado`);
-  
-  })();
+
+    window.logger.info(FILE, "Logger v3 inicializado correctamente.");
+
+})();

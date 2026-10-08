@@ -1,33 +1,34 @@
 // ======================================================
-// 📁 js/layouts/pageLayout.js
+// 📁 js/layouts/pageLayout.js (Safari Catalina Ready)
+// ======================================================
+// ✅ UNIVERSAL DECLARATIVE RUNTIME
+// ✅ Compatible con layoutRenderer actual
+// ✅ Registro automático en window.page y window.pageLayout
 // ======================================================
 
-(function(){
+(function () {
 
     const FILE = "pageLayout.js";
 
-    const log   = (...a) => window.logger?.info?.(FILE, ...a);
-    const debug = (...a) => window.logger?.debug?.(FILE, ...a);
-    const warn  = (...a) => window.logger?.warn?.(FILE, ...a);
+    const log = (...a) => window.logger?.info?.(FILE, ...a);
+    const warn = (...a) => window.logger?.warn?.(FILE, ...a);
     const error = (...a) => window.logger?.error?.(FILE, ...a);
 
     const api = {
-
         render
-
     };
 
+    // ======================================================
+    // RENDER MAIN
+    // ======================================================
     async function render({
-
         container,
         section = {},
         context = {}
+    } = {}) {
 
-    } = {}){
-
-        try{
-
-            if(!container){
+        try {
+            if (!container) {
                 warn("Contenedor DOM no proporcionado.");
                 return;
             }
@@ -40,48 +41,52 @@
 
             log(`Renderizando pageLayout con ${sections.length} secciones.`);
 
-            if(!Array.isArray(sections)){
-                warn("sections inválido.", sections);
+            if (!Array.isArray(sections)) {
+                warn("Estructura 'sections' inválida:", sections);
                 return;
             }
 
             // Identifica la función de renderizado disponible en layoutRenderer
-            const renderFn = 
-                window.layoutRenderer?.renderLayout || 
+            const renderFn =
+                window.layoutRenderer?.renderLayout ||
                 window.layoutRenderer?.render;
 
-            if(!renderFn){
+            if (!renderFn) {
                 error("No se encontró el método de renderizado en window.layoutRenderer");
                 return;
             }
 
-            for(const childSection of sections){
+            // Iteración tradicional para compatibilidad con Safari 13/14 (macOS Catalina)
+            for (var i = 0; i < sections.length; i++) {
+                var childSection = sections[i];
 
-                const sectionContainer = document.createElement("div");
+                var sectionContainer = document.createElement("div");
                 sectionContainer.className = "page-section";
                 container.appendChild(sectionContainer);
 
                 await renderFn.call(window.layoutRenderer, {
                     container: sectionContainer,
                     section: childSection,
-                    context
+                    context: context
                 });
-
             }
 
-        }
-        catch(e){
-
+        } catch (e) {
             error("render:", e);
-
+            if (window.errorHandler?.handle) {
+                window.errorHandler.handle({
+                    error: e,
+                    context: "pageLayout",
+                    step: "render"
+                });
+            }
         }
-
     }
 
     // Registrar en ambas llaves para evitar fallos de resolución por nombre
     window.page = api;
     window.pageLayout = api;
 
-    log("✅ pageLayout registrado correctamente");
+    log("✅ pageLayout registrado correctamente.");
 
 })();

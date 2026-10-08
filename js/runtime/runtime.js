@@ -226,39 +226,35 @@
     // EXECUTE PROFILE
     //==================================================
     
-    async function executeProfile({
-    
-        profile = {},
-        context = {}
-    
-    } = {}){
-    
-        const pipeline =
-    
-            profile.pipeline ||
-    
-            [];
-    
-    for(const step of pipeline){
-    
-        // debug(
-        //     "Programa:",
-        //     step.name
-        // );
-    
-        await window.programRegistry.execute({
-    
-            name: step.name,
-    
-            context
-    
-        });
+// ======================================================
+// EXECUTE PROFILE (runtime.js)
+// ======================================================
 
-        // debug("programa:", step.name, " context: ", context);
-    
+async function executeProfile({ profile = {}, context = {} } = {}) {
+  const pipeline = profile.pipeline || [];
+
+  for (const step of pipeline) {
+    const programName = typeof step === "string" ? step : step?.name;
+
+    try {
+      await window.programRegistry.execute({
+        name: programName,
+        context
+      });
+    } catch (e) {
+      // 🚨 Captura centralizada de cualquier fallo en la tubería
+      window.errorHandler?.handle({
+        error: e,
+        context: `Ejecución de Perfil '${context.profile}'`,
+        step: programName,
+        fatal: true
+      });
+
+      // Detiene la ejecución del resto de la tubería
+      throw e; 
     }
-    
-    }
+  }
+}
     
     //==================================================
     // REGISTER REGISTRY

@@ -1,239 +1,132 @@
 // ======================================================
-// 📁 js/layouts/navigationLayout.js
+// 📁 js/layouts/navigationLayout.js (Safari Catalina Ready)
 // ======================================================
 // UNIVERSAL DECLARATIVE RUNTIME
 //
-// RESPONSABILIDAD
-// - Renderizar barras de navegación.
+// RESPONSABILIDAD:
+// - Renderizar barras y botones de navegación.
 //
-// NO HACE
-// - Resolver datasets
-// - Resolver relaciones
-// - Resolver schemas
-// - Construir URLs
-//
-// La navegación se delega a:
-//
-// window.navigateRenderer.navigate()
-//
+// DELEGA NAVEGACIÓN A:
+// - window.navigateRenderer.navigate()
 // ======================================================
 
-(function(){
+(function () {
 
     const FILE = "navigationLayout.js";
 
-    const log   = (...a)=>window.logger?.info?.(FILE,...a);
-    const debug = (...a)=>window.logger?.debug?.(FILE,...a);
-    const warn  = (...a)=>window.logger?.warn?.(FILE,...a);
-    const error = (...a)=>window.logger?.error?.(FILE,...a);
+    const log = (...a) => window.logger?.info?.(FILE, ...a);
+    const warn = (...a) => window.logger?.warn?.(FILE, ...a);
+    const error = (...a) => window.logger?.error?.(FILE, ...a);
 
-    //==================================================
+    // ==================================================
     // EXPORTS
-    //==================================================
-
+    // ==================================================
     window.navigation = {
-
-        render
-
+        render: render
     };
 
-    //==================================================
-    // MAIN
-    //==================================================
-
+    // ==================================================
+    // MAIN RENDER
+    // ==================================================
     async function render({
-
         container,
         section = {},
         context = {}
+    } = {}) {
 
-    } = {}){
-
-        try{
-
-            if(!container){
-                return;
-            }
+        try {
+            if (!container) return;
 
             container.innerHTML = "";
 
-            //--------------------------------------------------
-            // DATASET
-            //--------------------------------------------------
+            // 1. Obtención del Dataset
+            const datasetKey = section.dataset || section.dataSource;
+            const dataset = context.datasets?.[datasetKey] || null;
 
-            const dataset =
-
-                context.datasets?.[
-
-                    section.dataset ||
-
-                    section.dataSource
-
-                ] ||
-
-                null;
-
-            if(!dataset){
-
-                warn(
-                    "Dataset inexistente:",
-                    section.dataset ||
-                    section.dataSource
-                );
-
+            if (!dataset) {
+                warn("Dataset inexistente para la navegación:", datasetKey);
                 return;
-
             }
 
-            //--------------------------------------------------
-            // ITEMS
-            //--------------------------------------------------
+            // 2. Extracción de Ítems
+            const items = dataset.value?.items || dataset.value || [];
 
-            const items =
-
-                dataset.value?.items ||
-
-                dataset.value ||
-
-                [];
-
-            if(!Array.isArray(items)){
-
-                warn(
-                    "Navigation inválida."
-                );
-
+            if (!Array.isArray(items) || items.length === 0) {
+                warn("Lista de ítems de navegación vacía o inválida.");
                 return;
-
             }
 
-            //--------------------------------------------------
-            // RENDER
-            //--------------------------------------------------
-
-            for(const item of items){
-
+            // 3. Renderizado de Elementos (Iteración segura para Safari Catalina)
+            for (var i = 0; i < items.length; i++) {
                 renderItem({
-
-                    container,
-
-                    item,
-
-                    context
-
+                    container: container,
+                    item: items[i],
+                    context: context
                 });
-
             }
 
+        } catch (e) {
+            error("Error en render de navigationLayout:", e);
+            if (window.errorHandler?.handle) {
+                window.errorHandler.handle({
+                    error: e,
+                    context: "navigationLayout",
+                    step: "render"
+                });
+            }
         }
-        catch(e){
-
-            error(
-                "render:",
-                e
-            );
-
-        }
-
     }
 
-    //==================================================
-    // ITEM
-    //==================================================
-
+    // ==================================================
+    // RENDER ITEM
+    // ==================================================
     function renderItem({
-
         container,
         item = {}
+    } = {}) {
 
-    } = {}){
-
-        try{
-
-            const button =
-                document.createElement(
-                    "button"
-                );
-
-            button.className =
-                "navigation-button";
+        try {
+            const button = document.createElement("button");
+            button.className = "navigation-button";
 
             button.innerText =
-
                 item.label ||
-
                 item.title ||
-
                 item.text ||
-
                 "Sin título";
 
-            //--------------------------------------------------
-            // ICONO
-            //--------------------------------------------------
-
-            if(item.icon){
-
-                button.dataset.icon =
-                    item.icon;
-
+            // Asignación de Ícono
+            if (item.icon) {
+                button.dataset.icon = item.icon;
             }
 
-            //--------------------------------------------------
-            // CLICK
-            //--------------------------------------------------
-
-            if(
-
-                window
-                    .navigateRenderer
-                    ?.isNavigation(
-
-                        item.navigation
-
-                    )
-
-            ){
-
-                button.onclick = async ()=>{
-
-                    await window
-                        .navigateRenderer
-                        .navigate(
-
-                            item.navigation
-
-                        );
-
+            // Configuración del Evento Click
+            if (window.navigateRenderer?.isNavigation?.(item.navigation)) {
+                button.onclick = async function () {
+                    try {
+                        await window.navigateRenderer.navigate(item.navigation);
+                    } catch (err) {
+                        error("Error al ejecutar navegación:", err);
+                        if (window.errorHandler?.handle) {
+                            window.errorHandler.handle({
+                                error: err,
+                                context: "navigationLayout",
+                                step: "navigate"
+                            });
+                        }
+                    }
                 };
-
-            }
-            else{
-
+            } else {
                 button.disabled = true;
-
             }
 
-            container.appendChild(
-                button
-            );
+            container.appendChild(button);
 
+        } catch (e) {
+            error("Error en renderItem de navigationLayout:", e);
         }
-        catch(e){
-
-            error(
-                "renderItem:",
-                e
-            );
-
-        }
-
     }
 
-    //==================================================
-
-    log(
-        "navigationLayout inicializado."
-    );
+    log("✅ navigationLayout inicializado correctamente.");
 
 })();

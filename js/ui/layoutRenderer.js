@@ -2,248 +2,128 @@
 // 📁 js/renderers/layoutRenderer.js
 // ======================================================
 
-(function(){
+(function () {
 
     const FILE = "layoutRenderer.js";
+    const log = (...a) => window.logger?.info?.(FILE, ...a);
 
-    const log   = (...a)=>window.logger?.info?.(FILE,...a);
-    const debug = (...a)=>window.logger?.debug?.(FILE,...a);
-    const warn  = (...a)=>window.logger?.warn?.(FILE,...a);
-    const error = (...a)=>window.logger?.error?.(FILE,...a);
+    // Registry interno de layouts
+    const registry = Object.create(null);
 
-    const layoutRegistry = Object.create(null);    
+    const cleanKey = (name) => String(name || "").trim().toLowerCase();
 
     // ==================================================
-    // EXECUTE
+    // EXPORT
     // ==================================================
+    window.layoutRenderer = {
+        execute,
+        render,
+        renderLayout,
+        registerLayout:   (name, l) => { if (name && l) registry[cleanKey(name)] = l; },
+        unregisterLayout: (name) => delete registry[cleanKey(name)],
+        hasLayout:        (name) => !!registry[cleanKey(name)],
+        getLayout:        (name) => registry[cleanKey(name)] || null,
+        getLayoutRegistry: () => ({ ...registry })
+    };
 
-    async function execute({ context = {} } = {}){
-        try{
-            await render({ context });
-            return context.layout;
-        }
-        catch(e){
-            error("execute:", e);
-            throw e;
-        }
+    // ==================================================
+    // EXECUTE (Paso del Pipeline)
+    // ==================================================
+    async function execute({ context = {} } = {}) {
+        await render({ context });
+        return context.layout;
     }
 
     // ==================================================
     // RENDER
     // ==================================================
-
     async function render({
         container,
         context = {},
         section = null
-    } = {}){
+    } = {}) {
 
-        try{
+        const targetContainer =
+            container ||
+            document.getElementById("content-view") ||
+            document.getElementById("app") ||
+            document.body;
 
-            // Fallback robusto para encontrar el contenedor en el DOM
-            container ??= 
-                document.getElementById("content-view") || 
-                document.getElementById("app") || 
-                document.body;
-
-            if(!container){
-                error("Container no encontrado.");
-                return;
-            }
-
-            const runtimeSection = section || context.layout;
-
-            if(!runtimeSection){
-                warn(`Layout no encontrado: "${runtimeSection}"`);
-                return;
-            }
-
-            return await renderLayout({
-                container,
-                section: runtimeSection,
-                context
-            });
-
-        }
-        catch(e){
-            error("render:", e);
+        if (!targetContainer) {
+            throw new Error("Contenedor DOM objetivo no encontrado para el renderizado del layout.");
         }
 
+        const runtimeSection = section || context.layout;
+
+        if (!runtimeSection) {
+            throw new Error("No se definió una sección de 'layout' en el contexto runtime.");
+        }
+
+        return await renderLayout({
+            container: targetContainer,
+            section: runtimeSection,
+            context
+        });
     }
 
     // ==================================================
     // RENDER LAYOUT
     // ==================================================
-
     async function renderLayout({
         container,
         section,
         context = {}
-    } = {}){
+    } = {}) {
 
-        try{
+        if (!container || !section) return;
 
-            if(!container || !section) return;
+        const component = resolveComponent(section);
+        const renderer = getLayout(component);
 
-            const component = resolveComponent(section);
-            const renderer = getLayout(component);
-
-            if(!renderer){
-                error(`Layout no registrado: ${component}`);
-                return;
-            }
-
-            log(`Ejecutando renderer para el componente: '${component}'`);
-
-            const renderFn = 
-                (typeof renderer.render === "function" && renderer.render) ||
-                (typeof renderer.renderLayout === "function" && renderer.renderLayout) ||
-                (typeof renderer === "function" && renderer);
-
-            if(renderFn){
-
-                // ----------------------------------------------
-                // PREPARAR PARÁMETROS PARA editLayout
-                // ----------------------------------------------
-                if(component === "edit"){
-
-                    const dataset = window.pathResolver?.getByPath?.(
-                        context.originalRoot,
-                        section.dataSource
-                    );
-
-                    const schema = await window.schemaResolver?.getSchema?.({
-                        context,
-                        name: section.schema
-                    });
-
-                    return await renderFn.call(renderer, {
-                        container,
-                        section,
-                        context,
-                        dataset,
-                        schema
-                    });
-
-                }
-
-                // ----------------------------------------------
-                // RESTO DE LOS LAYOUTS
-                // ----------------------------------------------
-                return await renderFn.call(renderer, {
-                    container,
-                    section,
-                    context
-                });
-
-            }
-
-            error(`Renderer inválido para: ${component}`);
-
-        }
-        catch(e){
-            error("renderLayout:", e);
+        if (!renderer) {
+            throw new Error(`Layout no registrado en el runtime: '${component}'.`);
         }
 
+        log(`Ejecutando renderer para el componente: '${component}'`);
+
+        const renderFn =
+            (typeof renderer.render === "function" && renderer.render) ||
+            (typeof renderer.renderLayout === "function" && renderer.renderLayout) ||
+            (typeof renderer === "function" && renderer);
+
+        if (typeof renderFn !== "function") {
+            throw new Error(`El layout '${component}' no implementa una función de renderizado válida.`);
+        }
+
+        // Firma unificada: la orquestación no conoce ni modifica casos particulares por nombre de componente
+        return await renderFn.call(renderer, {
+            container,
+            section,
+            context
+        });
     }
 
     // ==================================================
-    // RESOLVE COMPONENT
+    // HELPERS
     // ==================================================
-
-    function resolveComponent(section = {}){
-        try{
-            return String(
-                section.component ||
-                section.type ||
-                "object"
-            )
-            .trim()
-            .toLowerCase();
-        }
-        catch(e){
-            error("resolveComponent:", e);
-            return "object";
-        }
+    function resolveComponent(section = {}) {
+        return cleanKey(section.component || section.type || "object");
     }
 
-    // ==================================================
-    // HAS LAYOUT
-    // ==================================================
+    function getLayout(name) {
+        if (!name) return null;
 
-    function hasLayout(name){
-        try{
-            if(!name) return false;
-            return !!getLayout(name);
+        const key = cleanKey(name);
+
+        // 1. Registro interno
+        if (registry[key]) {
+            return registry[key];
         }
-        catch(e){
-            error("hasLayout:", e);
-            return false;
-        }
+
+        // 2. Fallbacks de compatibilidad en window (ej. window.detailLayout, window.editLayout)
+        return window[key] || window[`${key}Layout`] || null;
     }
 
-    // ==================================================
-    // GET LAYOUT (Con Búsqueda Global en Window)
-    // ==================================================
-
-    function getLayout(name){
-        try{
-            if(!name) return null;
-
-            const key = String(name).trim().toLowerCase();
-
-            // 1. Buscar en el registro interno
-            if (layoutRegistry[key]) {
-                return layoutRegistry[key];
-            }
-
-            // 2. Fallback: Buscar en window (ej. window.page, window.list)
-            if (window[key]) {
-                return window[key];
-            }
-
-            // 3. Fallback: Buscar con sufijo Layout en window (ej. window.pageLayout, window.listLayout)
-            if (window[`${key}Layout`]) {
-                return window[`${key}Layout`];
-            }
-
-            return null;
-
-        }
-        catch(e){
-            error("getLayout:", e);
-            return null;
-        }
-    }
-
-    function registerLayout(name, layout){
-        if(!name || !layout) return;
-
-        layoutRegistry[
-            String(name).trim().toLowerCase()
-        ] = layout;
-    }
-
-    function unregisterLayout(name){
-        delete layoutRegistry[
-            String(name).trim().toLowerCase()
-        ];
-    }
-
-    // ==================================================
-    // EXPORT
-    // ==================================================
-
-    window.layoutRenderer = {
-        execute,
-        render,
-        renderLayout,
-        registerLayout,
-        unregisterLayout,
-        hasLayout,
-        getLayout
-    };
-
-    log("layoutRenderer registrado correctamente.");
+    log(`${FILE} inicializado correctamente.`);
 
 })();

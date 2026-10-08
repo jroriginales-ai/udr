@@ -1,214 +1,88 @@
 // ======================================================
 // 📁 js/ui/navigateRenderer.js
 // ======================================================
-// UNIVERSAL DECLARATIVE RUNTIME
-//
-// Resolver único de navegación
-//
-// Utilizado por:
-//
-// - objectFieldRenderer
-// - imageFieldRenderer
-// - iconFieldRenderer
-// - buttonFieldRenderer
-// - listLayout
-//
-// ======================================================
 
-(function(){
+(function () {
 
-    const FILE =
-        "navigateRenderer.js";
-
-    const log =
-        (...a)=>window.logger?.info?.(
-            FILE,
-            ...a
-        );
-
-    const error =
-        (...a)=>window.logger?.error?.(
-            FILE,
-            ...a
-        );
+    const FILE = "navigateRenderer.js";
+    const log = (...a) => window.logger?.info?.(FILE, ...a);
 
     window.navigateRenderer = {
-
         buildHref,
         navigate,
         isNavigation
-
     };
 
     // ==========================================
     // DETECTA OBJETO NAVIGATION
     // ==========================================
-
-    function isNavigation(
-        value
-    ){
-
-        try{
-
-            return !!(
-
-                value &&
-                typeof value === "object" &&
-                value.html &&
-                value.source
-
-            );
-
-        }
-        catch(e){
-
-            return false;
-
-        }
-
+    function isNavigation(value) {
+        return !!(
+            value &&
+            typeof value === "object" &&
+            value.html &&
+            value.source
+        );
     }
 
     // ==========================================
     // BUILD HREF
     // ==========================================
-
-    function buildHref(
-        navigation = {}
-    ){
-
-        try{
-
-            if(
-                !navigation
-            ){
-                return "#";
-            }
-
-            const html =
-                navigation.html ||
-                "index.html";
-
-            const file =
-                navigation
-                ?.source
-                ?.file;
-
-            const path =
-                navigation
-                ?.source
-                ?.path;
-
-            const parameters =
-                navigation
-                ?.parameters
-
-                ||
-
-                {};
-
-            const params =
-                new URLSearchParams();
-
-            //--------------------------------------
-            // SOURCE
-            //--------------------------------------
-
-            if(file){
-
-                params.append(
-                    "file",
-                    file
-                );
-
-            }
-
-            if(path){
-
-                params.append(
-                    "path",
-                    path
-                );
-
-            }
-
-            //--------------------------------------
-            // PARAMETERS
-            //--------------------------------------
-
-            for(const key of Object.keys(parameters)){
-
-                const value =
-                    parameters[key];
-
-                if(
-                    value === undefined ||
-                    value === null
-                ){
-                    continue;
-                }
-
-                params.append(
-                    key,
-                    value
-                );
-
-            }
-
-            const query =
-                params.toString();
-
-            return query
-
-                ? `${html}?${query}`
-
-                : html;
-
-        }
-        catch(e){
-
-            error(
-                "buildHref",
-                e
-            );
-
+    function buildHref(navigation = {}) {
+        if (!navigation || typeof navigation !== "object") {
             return "#";
-
         }
 
+        const html = navigation.html || "index.html";
+        const file = navigation.source?.file;
+        const path = navigation.source?.path;
+        const parameters = navigation.parameters || {};
+
+        const params = new URLSearchParams();
+
+        if (file) params.append("file", file);
+        if (path) params.append("path", path);
+
+        // Incorporar parámetros adicionales
+        for (const [key, val] of Object.entries(parameters)) {
+            if (val !== undefined && val !== null) {
+                params.append(key, val);
+            }
+        }
+
+        const query = params.toString();
+        return query ? `${html}?${query}` : html;
     }
 
     // ==========================================
-    // NAVEGAR
+    // NAVEGAR (Con reporte al errorHandler)
     // ==========================================
+    async function navigate(navigation = {}) {
+        try {
+            const href = buildHref(navigation);
 
-    async function navigate(
-        navigation = {}
-    ){
+            if (href === "#") {
+                throw new Error("Estructura de navegación inválida o vacía.");
+            }
 
-        try{
+            log("Navegando a:", href);
+            window.location.href = href;
 
-            const href =
-                buildHref(
-                    navigation
-                );
-
-            window.location.href =
-                href;
-
+        } catch (e) {
+            // Reporte al errorHandler centralizado (fatal: false)
+            if (window.errorHandler?.handle) {
+                window.errorHandler.handle({
+                    error: e,
+                    context: "NavigateRenderer",
+                    step: "navigate",
+                    fatal: false
+                });
+            } else {
+                window.logger?.error?.(FILE, "navigate:", e);
+            }
         }
-        catch(e){
-
-            error(
-                "navigate",
-                e
-            );
-
-        }
-
     }
 
-    log(
-        "navigateRenderer inicializado"
-    );
+    log(`${FILE} inicializado correctamente.`);
 
 })();

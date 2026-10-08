@@ -1,930 +1,228 @@
-(function(){
+// ======================================================
+// 📁 js/resolvers/layoutResolver.js (Safari / Catalina Ready)
+// ======================================================
+
+(function () {
 
     const FILE = "layoutResolver.js";
-
-    const log   = (...a)=>window.logger?.info?.(FILE,...a);
-    const debug = (...a)=>window.logger?.debug?.(FILE,...a);
-    const warn  = (...a)=>window.logger?.warn?.(FILE,...a);
-    const error = (...a)=>window.logger?.error?.(FILE,...a);
-
-    // ==================================================
-    // EXPORT
-    // ==================================================
+    const log = (...a) => window.logger?.info?.(FILE, ...a);
 
     window.layoutResolver = {
-
         execute
-
     };
+
+    // Helper de clonado compatible con Safari 13/14 (macOS Catalina)
+    function clone(val) {
+        if (val == null) return val;
+        if (typeof window.structuredClone === "function") {
+            return window.structuredClone(val);
+        }
+        return JSON.parse(JSON.stringify(val));
+    }
 
     // ==================================================
     // EXECUTE
     // ==================================================
+    async function execute({ context = {} } = {}) {
+        const layoutSource = context.profileDefinition?.layout
+            ? context.root?.[context.profileDefinition.layout]
+            : context.datasets?.layout?.value;
 
-    async function execute({
-
-        context = {}
-
-    } = {}){
-
-        try{
-
-            const layoutSource =
-                context.profileDefinition?.layout
-                    ? context.root?.[
-                        context.profileDefinition.layout
-                    ]
-                    : context.datasets?.layout?.value;
-
-            const layout =
-                layoutSource;       
-                
-                
-                debug(
-                    "LAYOUT PROFILE",
-                    context.profileDefinition?.layout
-                );
-                
-                debug(
-                    "LAYOUT SOURCE",
-                    layoutSource
-                );                
-
-            // const layout =
-
-            //     context.datasets
-            //         ?.layout
-            //         ?.value;
-
-            if(!layout){
-
-                warn(
-                    "Layout no encontrado."
-                );
-
-                return null;
-
-            }
-
-            context.layout =
-
-                await resolveLayout({
-
-                    layout,
-
-                    context
-
-                });
-
-            log(
-                "Layout resuelto correctamente."
-            );
-
-            return context.layout;
-
-        }
-        catch(e){
-
-            error(
-                "execute:",
-                e
-            );
-
-            throw e;
-
+        if (!layoutSource) {
+            log("No se encontró estructura de layout para resolver.");
+            return null;
         }
 
+        context.layout = await resolveLayout({ layout: layoutSource, context });
+
+        log("Layout resuelto correctamente.");
+        return context.layout;
     }
 
     // ==================================================
-    // LAYOUT
+    // RESOLVE LAYOUT
     // ==================================================
-
-    async function resolveLayout({
-
-        layout,
-
-        context
-
-    }){
-
+    async function resolveLayout({ layout, context }) {
         return await resolveNode({
-
             node: clone(layout),
-
             context
+        });
+    }
 
+    // ==================================================
+    // RESOLVE NODE (Recursión Asíncrona)
+    // ==================================================
+    async function resolveNode({ node, context }) {
+        if (node == null || typeof node !== "object") {
+            return node;
+        }
+
+        // Resolución de Arreglos en Paralelo
+        if (Array.isArray(node)) {
+            return await Promise.all(
+                node.map(function (item) {
+                    return resolveNode({ node: item, context });
+                })
+            );
+        }
+
+        // Resolución de Componentes UI
+        if (typeof node.component === "string") {
+            const resolved = Object.assign({}, node);
+
+            const dsName = resolved.dataset || resolved.dataSource;
+            if (dsName) {
+                const dataset = context.datasets?.[dsName];
+                const schema = Array.isArray(dataset?.schema) ? dataset.schema : [];
+
+                if (!Array.isArray(resolved.fields) || resolved.fields.length === 0) {
+                    resolved.fields = clone(schema);
+                }
+
+                const records = Array.isArray(dataset?.value)
+                    ? dataset.value
+                    : dataset?.value != null
+                    ? [dataset.value]
+                    : [];
+
+                resolved.items = await Promise.all(
+                    records.map(async function (record) {
+                        return {
+                            value: clone(record),
+                            navigation: clone(record?.navigation),
+                            fields: await resolveFields({
+                                fields: resolved.fields,
+                                schema: schema,
+                                record: record,
+                                context: context
+                            })
+                        };
+                    })
+                );
+
+                delete resolved.fields;
+            }
+
+            for (const key of Object.keys(resolved)) {
+                if (key === "items") continue;
+                resolved[key] = await resolveNode({ node: resolved[key], context });
+            }
+
+            return resolved;
+        }
+
+        // Objeto Estándar
+        const result = {};
+        for (const [key, value] of Object.entries(node)) {
+            result[key] = await resolveNode({ node: value, context });
+        }
+
+        return result;
+    }
+
+    // ==================================================
+    // RESOLVE FIELDS
+    // ==================================================
+    async function resolveFields({ fields = [], schema = [], record = null, context = {} }) {
+        return await Promise.all(
+            fields.map(function (layoutField) {
+                return resolveField({ layoutField, schema, record, context });
+            })
+        );
+    }
+
+    // ==================================================
+    // RESOLVE FIELD
+    // ==================================================
+    async function resolveField({ layoutField = {}, schema = [], record = null, context = {} }) {
+        const schemaField = schema.find(function (f) {
+            return f.campo === layoutField.campo;
+        }) || {};
+
+        const field = mergeField({ schemaField, layoutField });
+
+        field.value = resolveValue({ record, campo: field.campo });
+        field.__resolved = resolveResolved({ record, campo: field.campo });
+        field.resolvedValue = field.__resolved != null ? clone(field.__resolved) : null;
+
+        if (field.fields?.length && field.__resolved) {
+            field.fields = await resolveFields({
+                fields: field.fields,
+                schema: schemaField.fields || [],
+                record: field.__resolved,
+                context
+            });
+        } else if (field.value && typeof field.value === "object" && !Array.isArray(field.value)) {
+            field.fields = await resolveFields({
+                fields: field.fields || [],
+                schema: schemaField.fields || [],
+                record: Object.assign({}, field.value),
+                context
+            });
+        }
+
+        if (Array.isArray(field.value)) {
+            field.items = await Promise.all(
+                field.value.map(async function (item) {
+                    return {
+                        value: clone(item),
+                        navigation: clone(item?.navigation),
+                        fields: await resolveFields({
+                            fields: field.fields || [],
+                            schema: schemaField.fields || [],
+                            record: item,
+                            context: context
+                        })
+                    };
+                })
+            );
+        }
+
+        return field;
+    }
+
+    // ==================================================
+    // HELPERS
+    // ==================================================
+    function mergeField({ schemaField = {}, layoutField = {} }) {
+        const schemaChildren = schemaField.fields || [];
+        const layoutChildren = layoutField.fields || [];
+
+        const mergedChildren = layoutChildren.map(function (layoutChild) {
+            const schemaChild = schemaChildren.find(function (s) {
+                return s.campo === layoutChild.campo;
+            }) || {};
+            return mergeField({ schemaField: schemaChild, layoutField: layoutChild });
         });
 
+        return Object.assign({}, schemaField, layoutField, {
+            fields: mergedChildren.length ? mergedChildren : schemaChildren
+        });
     }
 
-    // ==================================================
-    // NODE
-    // ==================================================
+    function resolveValue({ record, campo }) {
+        if (record == null || !campo) return null;
 
-    async function resolveNode({
-
-        node,
-    
-        context
-    
-    }){
-    
-        //------------------------------------------------
-        // NULL
-        //------------------------------------------------
-    
-        if(node == null){
-    
-            return node;
-    
+        if (Object.prototype.hasOwnProperty.call(record, campo)) {
+            return clone(record[campo]);
         }
-    
-        //------------------------------------------------
-        // ARRAY
-        //------------------------------------------------
-    
-        if(Array.isArray(node)){
-    
-            const result = [];
-    
-            for(const item of node){
-    
-                result.push(
-    
-                    await resolveNode({
-    
-                        node: item,
-    
-                        context
-    
-                    })
-    
-                );
-    
-            }
-    
-            return result;
-    
+
+        const parts = String(campo).split(".");
+        let value = record;
+
+        for (const part of parts) {
+            value = value?.[part];
+            if (value === undefined) return null;
         }
-    
-        //------------------------------------------------
-        // PRIMITIVO
-        //------------------------------------------------
-    
-        if(typeof node !== "object"){
-    
-            return node;
-    
-        }
-    
-        //------------------------------------------------
-        // COMPONENTE
-        //------------------------------------------------
-    
-        if(typeof node.component === "string"){
-    
-            const resolved = clone(node);
-    
-            if(
-    
-                resolved.dataset ||
-    
-                resolved.dataSource
-    
-            ){
-    
-                const dataset =
-    
-                    context.datasets?.[
-    
-                        resolved.dataset ||
-    
-                        resolved.dataSource
-    
-                    ];
-    
-                const schema =
-    
-                    Array.isArray(
-                        dataset?.schema
-                    )
-    
-                        ? dataset.schema
-    
-                        : [];
-    
-                //------------------------------------------------
-                // Si no hay fields definidos
-                // utilizar todo el schema
-                //------------------------------------------------
-    
-                if(
-    
-                    !Array.isArray(
-                        resolved.fields
-                    )
-    
-                    ||
-    
-                    resolved.fields.length === 0
-    
-                ){
-    
-                    resolved.fields =
-                        clone(schema);
-    
-                }
-    
-                const records =
-    
-                    Array.isArray(
-                        dataset?.value
-                    )
-    
-                        ? dataset.value
-    
-                        : dataset?.value != null
-    
-                            ? [ dataset.value ]
-    
-                            : [];
-    
-                resolved.items = [];
 
-                // debug(
-                //     "DATASET RECORDS:",
-                //     JSON.stringify(records, null, 2)
-                // );
-
-                for(const record of records){
-
-// debug(
-//     "CURRENT RECORD:",
-//     JSON.stringify(record, null, 2)
-// );
-
-// debug(
-//     "CURRENT RECORD.__RESOLVED:",
-//     JSON.stringify(record.__resolved, null, 2)
-// );             
-                        
-
-                    resolved.items.push({
-    
-                        value:
-                            clone(record),
-    
-                        navigation:
-                            clone(
-                                record?.navigation
-                            ),
-    
-                        fields:
-    
-                            await resolveFields({
-    
-                                fields:
-                                    resolved.fields,
-    
-                                schema,
-    
-                                record,
-    
-                                context
-    
-                            })
-    
-                    });
-    
-                }
-    
-                delete resolved.fields;
-    
-            }
-    
-            //------------------------------------------------
-            // Continúa resolviendo cualquier propiedad
-            //------------------------------------------------
-    
-            for(const key of Object.keys(resolved)){
-    
-                if(key === "items"){
-    
-                    continue;
-    
-                }
-    
-                resolved[key] =
-    
-                    await resolveNode({
-    
-                        node: resolved[key],
-    
-                        context
-    
-                    });
-    
-            }
-    
-            return resolved;
-    
-        }
-    
-        //------------------------------------------------
-        // OBJETO NORMAL
-        //------------------------------------------------
-    
-        const result = {};
-    
-        for(const [key,value] of Object.entries(node)){
-    
-            result[key] =
-    
-                await resolveNode({
-    
-                    node: value,
-    
-                    context
-    
-                });
-    
-        }
-    
-        return result;
-    
+        return clone(value);
     }
 
-    // ==================================================
-    // FIELDS
-    // ==================================================
-
-    async function resolveFields({
-
-        fields = [],
-
-        schema = [],
-
-        record = null,
-
-        context = {}
-
-    }){
-
-  
-        
-        const result = [];
-
-        // debug(
-        //     "RECORD:",
-        //     JSON.stringify(
-        //         record,
-        //         null,
-        //         2
-        //     )
-        // );
-        
-        for(const layoutField of fields){
-
-            result.push(
-        
-                await resolveField({
-        
-                    layoutField,
-        
-                    schema,
-        
-                    record,
-        
-                    context
-        
-                })
-        
-            );
-        
-        }
-
-   
-
-        return result;
-
+    function resolveResolved({ record, campo }) {
+        if (!record?.__resolved || !campo) return null;
+        return clone(record.__resolved[campo]) ?? null;
     }
 
-    // ==================================================
-    // FIELD
-    // ==================================================
-
-    async function resolveField({
-
-        layoutField = {},
-    
-        schema = [],
-    
-        record = null,
-    
-        context = {}
-    
-    }){
-    
-        //------------------------------------------------
-        // SCHEMA FIELD
-        //------------------------------------------------
-    
-        const schemaField =
-    
-            schema.find(
-    
-                field =>
-    
-                    field.campo ===
-                    layoutField.campo
-    
-            )
-    
-            ||
-    
-            {};
-    
-    
-        //------------------------------------------------
-        // MERGE
-        //------------------------------------------------
-    
-        const field =
-    
-            mergeField({
-    
-                schemaField,
-    
-                layoutField
-    
-            });
-    
-    
-        // debug(
-        //     "RESOLVE FIELD:",
-        //     {
-        //         campo:
-        //             field.campo,
-    
-        //         originalValue:
-        //             record?.[field.campo],
-    
-        //         resolvedValue:
-        //             record?.__resolved?.[field.campo]
-        //     }
-        // );
-    
-    
-        //------------------------------------------------
-        // ORIGINAL VALUE
-        //
-        // Siempre representa el valor almacenado
-        // en el dataset original.
-        //------------------------------------------------
-    
-        field.value =
-    
-            resolveValue({
-    
-                record,
-    
-                campo:
-                    field.campo
-    
-            });
-    
-    
-        //------------------------------------------------
-        // RESOLVED VALUE
-        //
-        // Proviene exclusivamente de relationResolver.
-        //------------------------------------------------
-    
-        field.__resolved =
-    
-            resolveResolved({
-    
-                record,
-    
-                campo:
-                    field.campo
-    
-            });
-    
-    
-        //------------------------------------------------
-        // PUBLIC RESOLVED VALUE
-        //
-        // El layout/renderer puede utilizarlo sin tener
-        // que conocer __resolved.
-        //------------------------------------------------
-    
-        if(
-            field.__resolved !== null &&
-            field.__resolved !== undefined
-        ){
-    
-            field.resolvedValue =
-    
-                clone(
-                    field.__resolved
-                );
-    
-        }
-        else{
-    
-            field.resolvedValue =
-                null;
-    
-        }
-    
-    
-        //------------------------------------------------
-        // OBJECT
-        //
-        // Un objeto normal se sigue resolviendo
-        // recursivamente.
-        //
-        // Si existe una relación resuelta, NO se
-        // reemplaza el objeto original.
-        //------------------------------------------------
-    
-        if(
-
-            field.fields?.length &&
-        
-            field.__resolved
-        
-        ){
-            
-            field.fields =
-            
-                await resolveFields({
-            
-                    fields:
-                        field.fields,
-            
-                    schema:
-                        schemaField.fields || [],
-            
-                    record:
-                        field.__resolved,
-            
-                    context
-            
-                });
-        
-        }
-        else if(
-        
-            field.value &&
-        
-            typeof field.value === "object" &&
-        
-            !Array.isArray(
-                field.value
-            )
-        
-        ){
-    
-            const childRecord = {
-    
-                ...field.value
-    
-            };
-    
-    
-            field.fields =
-    
-                await resolveFields({
-    
-                    fields:
-                        field.fields || [],
-    
-                    schema:
-                        schemaField.fields || [],
-    
-                    record:
-                        childRecord,
-    
-                    context
-    
-                });
-    
-        }
-    
-    
-        //------------------------------------------------
-        // ARRAY
-        //------------------------------------------------
-    
-        if(
-            Array.isArray(
-                field.value
-            )
-        ){
-    
-            field.items = [];
-    
-    
-            for(
-                const item
-                of field.value
-            ){
-    
-                field.items.push({
-    
-                    //------------------------------------------------
-                    // VALOR ORIGINAL DEL ITEM
-                    //------------------------------------------------
-    
-                    value:
-                        clone(
-                            item
-                        ),
-    
-    
-                    //------------------------------------------------
-                    // NAVIGATION
-                    //------------------------------------------------
-    
-                    navigation:
-                        clone(
-                            item?.navigation
-                        ),
-    
-    
-                    //------------------------------------------------
-                    // CAMPOS RESUELTOS
-                    //------------------------------------------------
-    
-                    fields:
-    
-                        await resolveFields({
-    
-                            fields:
-                                field.fields || [],
-    
-                            schema:
-                                schemaField.fields || [],
-    
-                            record:
-                                item,
-    
-                            context
-    
-                        })
-    
-                });
-    
-            }
-    
-        }
-    
-    
-        //------------------------------------------------
-        // DEBUG
-        //------------------------------------------------
-    
-        // debug(
-        //     "FIELD ORIGINAL VALUE:",
-        //     field.value
-        // );
-    
-    
-        // debug(
-        //     "FIELD FINAL:",
-        //     JSON.stringify(field, null, 2)
-        // );
-        
-        // if(field.campo === "tipos_media"){
-
-        //     debug(
-        //         "TIPOS_MEDIA RESOLVE:",
-        //         JSON.stringify({
-        //             campo: field.campo,
-        //             originalValue: record?.[field.campo],
-        //             resolvedValue: record?.__resolved?.[field.campo]
-        //         }, null, 2)
-        //     );
-        
-        // }
-    
-    
-        //------------------------------------------------
-        // RETURN
-        //------------------------------------------------
-    
-        return field;
-    
-    }
-
-    // ==================================================
-    // MERGE FIELD
-    // ==================================================
-
-    function mergeField({
-
-        schemaField = {},
-    
-        layoutField = {}
-    
-    }){
-    
-        const schemaChildren =
-            schemaField.fields || [];
-    
-        const layoutChildren =
-            layoutField.fields || [];
-    
-        const mergedChildren =
-            layoutChildren.map(
-                layoutChild => {
-    
-                    const schemaChild =
-                        schemaChildren.find(
-                            s =>
-                            s.campo ===
-                            layoutChild.campo
-                        ) || {};
-    
-                    return mergeField({
-    
-                        schemaField:
-                            schemaChild,
-    
-                        layoutField:
-                            layoutChild
-    
-                    });
-    
-                }
-            );
-    
-        return {
-    
-            ...schemaField,
-    
-            ...layoutField,
-    
-            fields:
-                mergedChildren.length
-                    ? mergedChildren
-                    : schemaChildren
-    
-        };
-    
-    }    
-
-    // function mergeField({
-
-    //     schemaField = {},
-
-    //     layoutField = {}
-
-    // }){
-
-    //     return {
-
-    //         ...schemaField,
-
-    //         ...layoutField,
-
-    //         fields:
-
-    //             layoutField.fields ??
-
-    //             schemaField.fields ??
-
-    //             []
-
-    //     };
-
-    // }
-
-    // ==================================================
-    // VALUE
-    // ==================================================
-
-    function resolveValue({
-
-        record,
-        campo
-    
-    }){
-    
-        if(
-            record == null ||
-            !campo
-        ){
-    
-            return null;
-    
-        }
-    
-        //--------------------------------------------------
-        // VALOR ORIGINAL
-        //--------------------------------------------------
-    
-        if(
-            Object.prototype.hasOwnProperty.call(
-                record,
-                campo
-            )
-        ){
-    
-            return clone(
-                record[campo]
-            );
-    
-        }
-    
-        //--------------------------------------------------
-        // CAMPO ANIDADO
-        //--------------------------------------------------
-    
-        const parts =
-            String(campo).split(".");
-    
-        let value =
-            record;
-    
-        for(const part of parts){
-    
-            value =
-                value?.[part];
-    
-            if(value === undefined){
-    
-                return null;
-    
-            }
-    
-        }
-    
-        return clone(
-            value
-        );
-    
-    }
-    // ==================================================
-    // CLONE
-    // ==================================================
-
-    function clone(value){
-
-        if(
-
-            value === null ||
-
-            value === undefined
-
-        ){
-
-            return value;
-
-        }
-
-        return JSON.parse(
-
-            JSON.stringify(
-                value
-            )
-
-        );
-
-    }
-
-    function resolveResolved({
-
-        record,
-        campo
-    
-    }){
-    
-        if(
-            !record ||
-            !record.__resolved ||
-            !campo
-        ){
-    
-            return null;
-    
-        }
-    
-        return clone(
-            record.__resolved[campo]
-        ) ?? null;
-    
-    }
-
-    // ==================================================
-    // INIT
-    // ==================================================
-
-    log(
-        `${FILE} inicializado correctamente.`
-    );
+    log(`${FILE} inicializado correctamente.`);
 
 })();

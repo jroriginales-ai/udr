@@ -1,590 +1,264 @@
-async function execute({
+// ======================================================
+// 📁 js/resolvers/contextResolver.js (Safari Catalina Ready)
+// ======================================================
 
-    persona1 = null,
-    intencion = "",
-<<<<<<< HEAD
-    persona2 = null
+(function () {
 
-} = {}){
+    const FILE = "contextResolver.js";
+    const log = (...a) => window.logger?.info?.(FILE, ...a);
+    const debug = (...a) => window.logger?.debug?.(FILE, ...a);
+    const warn = (...a) => window.logger?.warn?.(FILE, ...a);
 
-    try{
+    window.contextResolver = {
+        execute,
+        resolveIntent,
+        extractNodes,
+        buildOutput
+    };
 
-        if(!persona1){
-            throw new Error(
-                "persona1 es requerida."
-            );
+    // Helper de clonado compatible con Safari 13/14 (macOS Catalina)
+    function clone(value) {
+        if (value == null) return value;
+        if (typeof window.structuredClone === "function") {
+            return window.structuredClone(value);
         }
+        return JSON.parse(JSON.stringify(value));
+    }
 
-        if(!intencion){
-            throw new Error(
-                "intencion es requerida."
-            );
-        }
-
-        if(!persona2){
-            throw new Error(
-                "persona2 es requerida."
-            );
-=======
-    persona2 = [],
-    field = null,
-    selectedId = null,
-    selectedField = null,
-    selectedValue = null
-
-} = {}) {
-
-    try {
+    // ======================================================
+    // EXECUTE (Paso del Pipeline / Resolver)
+    // ======================================================
+    async function execute({
+        persona1 = null,
+        intencion = "",
+        persona2 = [],
+        field = null,
+        selectedId = null,
+        selectedField = null,
+        selectedValue = null
+    } = {}) {
 
         if (!persona1) {
-
-            throw new Error(
-                "persona1 es requerida."
-            );
-
+            throw new Error("El parámetro 'persona1' es requerido.");
         }
 
         if (!intencion) {
-
-            throw new Error(
-                "intencion es requerida."
-            );
-
+            throw new Error("El parámetro 'intencion' es requerido.");
         }
 
         if (!Array.isArray(persona2)) {
-
-            throw new Error(
-                "persona2 debe ser una lista."
-            );
-
->>>>>>> f1df6f9748708a0da2576323590b20fb6ff833ee
+            throw new Error("El parámetro 'persona2' debe ser una lista.");
         }
 
-        const motorConfig =
-            persona1?.definition?.motor_config ||
-            {};
+        const motorConfig = persona1?.definition?.motor_config || {};
+        const rutas = motorConfig.rutas_orquestacion || {};
+        const estructuraBase = motorConfig.estructura_salida_base;
 
-        const rutas =
-            motorConfig.rutas_orquestacion ||
-            {};
-
-        const estructuraBase =
-            motorConfig.estructura_salida_base;
-
-<<<<<<< HEAD
-        if(!estructuraBase){
-=======
         if (!estructuraBase) {
->>>>>>> f1df6f9748708a0da2576323590b20fb6ff833ee
-
-            throw new Error(
-                "No existe 'estructura_salida_base' en motor_config."
-            );
-
+            throw new Error("No existe 'estructura_salida_base' dentro de motor_config.");
         }
 
-        const mapaIntenciones =
-            window.pathResolver.getByPath(
-                persona1,
-                rutas.contenedor,
-                []
-            );
+        // 1. Resolver Intención desde el Mapa
+        const mapaIntenciones = window.pathResolver?.getByPath?.(
+            persona1,
+            rutas.contenedor,
+            []
+        ) || [];
 
-        const contexto =
-            resolveIntent({
-<<<<<<< HEAD
-=======
-
->>>>>>> f1df6f9748708a0da2576323590b20fb6ff833ee
-                mapaIntenciones,
-                intencion,
-                campoContexto:
-                    rutas.campo_contexto
-<<<<<<< HEAD
-            });
-
-        if(!contexto){
-=======
-
-            });
+        const contexto = resolveIntent({
+            mapaIntenciones: mapaIntenciones,
+            intencion: intencion,
+            campoContexto: rutas.campo_contexto
+        });
 
         if (!contexto) {
->>>>>>> f1df6f9748708a0da2576323590b20fb6ff833ee
-
-            debug(
-                "Intención no encontrada:",
-                intencion
-            );
-
+            debug("Intención no encontrada en el mapa:", intencion);
             return null;
-<<<<<<< HEAD
         }
 
-        const datosEmisor =
-            extractNodes({
-                root: persona1,
-=======
-
-        }
-
-        //--------------------------------------------------
-        // 1. EXTRAER NODOS DEL EMISOR
-        //--------------------------------------------------
-
-        const datosEmisor =
-            extractNodes({
-
-                root: persona1,
-
->>>>>>> f1df6f9748708a0da2576323590b20fb6ff833ee
-                paths:
-                    window.pathResolver.getByPath(
-                        contexto,
-                        rutas.campo_emisor,
-                        []
-                    )
-<<<<<<< HEAD
-            });
-
-        const datosReceptor =
-            extractNodes({
-                root: persona2,
-                paths:
-                    window.pathResolver.getByPath(
-                        contexto,
-                        rutas.campo_receptor,
-                        []
-                    )
-            });
-
-        return buildOutput({
-=======
-
-            });
-
-        //--------------------------------------------------
-        // 2. OBTENER PERSONAS RECEPTORAS
-        //--------------------------------------------------
-
-        let personasReceptor =
-            persona2;
-
-        if (!personasReceptor.length) {
-
-            const source =
-                field?.relation?.source ||
-                {};
-
-            if (source.file) {
-
-                const receptorRuntimeContext =
-                    await window.runtime.init({
-
-                        file:
-                            source.file,
-
-                        path:
-                            source.path,
-
-                        profile:
-                            "selector",
-
-                        context: {
-
-                            parameters: {
-
-                                selectedId,
-                                selectedField,
-                                selectedValue
-
-                            }
-
-                        }
-
-                    });
-
-                const receptorRoot =
-                    receptorRuntimeContext?.root;
-
-                if (Array.isArray(receptorRoot)) {
-
-                    personasReceptor =
-                        receptorRoot;
-
-                }
-                else if (receptorRoot) {
-
-                    personasReceptor = [
-                        receptorRoot
-                    ];
-
-                }
-
-            }
-
-        }
-
-        //--------------------------------------------------
-        // 3. EXTRAER NODOS DE CADA RECEPTOR
-        //--------------------------------------------------
-
-        const pathsReceptor =
-            window.pathResolver.getByPath(
+        // 2. Extraer Nodos del Emisor (persona1)
+        const datosEmisor = extractNodes({
+            root: persona1,
+            paths: window.pathResolver?.getByPath?.(
                 contexto,
-                rutas.campo_receptor,
+                rutas.campo_emisor,
                 []
-            );
+            ) || []
+        });
 
-        const datosReceptor = [];
+        // 3. Obtener Personas Receptoras (si viene vacío, intenta resolver vía relación)
+        let personasReceptor = persona2;
 
-        for (
-            const persona
-            of personasReceptor
-        ) {
+        if (personasReceptor.length === 0 && field?.relation?.source?.file) {
+            const source = field.relation.source;
 
-            datosReceptor.push(
+            const receptorRuntimeContext = await window.runtime?.init?.({
+                file: source.file,
+                path: source.path,
+                profile: "selector",
+                context: {
+                    parameters: {
+                        selectedId: selectedId,
+                        selectedField: selectedField,
+                        selectedValue: selectedValue
+                    }
+                }
+            });
 
-                extractNodes({
+            const receptorRoot = receptorRuntimeContext?.root;
 
-                    root:
-                        persona,
-
-                    paths:
-                        pathsReceptor
-
-                })
-
-            );
-
+            if (Array.isArray(receptorRoot)) {
+                personasReceptor = receptorRoot;
+            } else if (receptorRoot) {
+                personasReceptor = [receptorRoot];
+            }
         }
 
-        //--------------------------------------------------
-        // 4. CONSTRUIR SALIDA
-        //--------------------------------------------------
-
-        return buildOutput({
-
->>>>>>> f1df6f9748708a0da2576323590b20fb6ff833ee
-            estructuraBase,
+        // 4. Extraer Nodos para la Lista de Receptores (Soporta 0 a N)
+        const pathsReceptor = window.pathResolver?.getByPath?.(
             contexto,
-            intencion,
-            persona1,
-<<<<<<< HEAD
-            persona2,
-            datosEmisor,
-            datosReceptor
+            rutas.campo_receptor,
+            []
+        ) || [];
+
+        const datosReceptor = personasReceptor.map(function (persona) {
+            return extractNodes({
+                root: persona,
+                paths: pathsReceptor
+            });
         });
 
-    }
-    catch(e){
-=======
-            persona2:
-                personasReceptor,
-            datosEmisor,
-            datosReceptor
-
+        // 5. Construir Estructura de Salida
+        return buildOutput({
+            estructuraBase: estructuraBase,
+            contexto: contexto,
+            intencion: intencion,
+            persona1: persona1,
+            persona2: personasReceptor,
+            datosEmisor: datosEmisor,
+            datosReceptor: datosReceptor
         });
-
-    }
-    catch (e) {
->>>>>>> f1df6f9748708a0da2576323590b20fb6ff833ee
-
-        error(
-            "execute:",
-            e
-        );
-
-        throw e;
-
     }
 
-}
+    // ======================================================
+    // HELPERS
+    // ======================================================
 
-<<<<<<< HEAD
-function resolveIntent({
+    function resolveIntent({
+        mapaIntenciones = [],
+        intencion = "",
+        campoContexto = ""
+    } = {}) {
+        if (!Array.isArray(mapaIntenciones) || !campoContexto) {
+            return null;
+        }
 
-    mapaIntenciones = [],
-    intencion = "",
-    campoContexto = ""
-
-} = {}){
-
-    if(!Array.isArray(mapaIntenciones)){
-        return null;
-    }
-
-    if(!campoContexto){
-=======
-
-function resolveIntent({
-    mapaIntenciones = [],
-    intencion = "",
-    campoContexto = ""
-} = {}) {
-
-    if (!Array.isArray(mapaIntenciones)) {
-        return null;
-    }
-
-    if (!campoContexto) {
->>>>>>> f1df6f9748708a0da2576323590b20fb6ff833ee
-        return null;
-    }
-
-    return mapaIntenciones.find(
-        item =>
-            window.pathResolver.getByPath(
+        return mapaIntenciones.find(function (item) {
+            return window.pathResolver?.getByPath?.(
                 item,
                 campoContexto,
                 undefined
-            ) === intencion
-    ) || null;
-
-}
-
-function extractNodes({
-<<<<<<< HEAD
-
-    root = {},
-    paths = []
-
-} = {}){
-
-    const resultado = {};
-
-    if(!Array.isArray(paths)){
-        return resultado;
+            ) === intencion;
+        }) || null;
     }
 
-    for(const path of paths){
-=======
-    root = {},
-    paths = []
-} = {}) {
+    function extractNodes({
+        root = {},
+        paths = []
+    } = {}) {
+        const resultado = {};
 
-    const resultado = {};
+        if (!Array.isArray(paths)) {
+            return resultado;
+        }
 
-    if (!Array.isArray(paths)) {
-        return resultado;
-    }
-
-    for (const path of paths) {
->>>>>>> f1df6f9748708a0da2576323590b20fb6ff833ee
-
-        const value =
-            window.pathResolver.getByPath(
+        for (var i = 0; i < paths.length; i++) {
+            var path = paths[i];
+            var value = window.pathResolver?.getByPath?.(
                 root,
                 path,
                 undefined
             );
 
-<<<<<<< HEAD
-        if(value === undefined){
-=======
-        if (value === undefined) {
->>>>>>> f1df6f9748708a0da2576323590b20fb6ff833ee
-            continue;
+            if (value === undefined) continue;
+
+            window.pathResolver?.setByPath?.(
+                resultado,
+                path,
+                value
+            );
         }
 
-        window.pathResolver.setByPath(
+        return resultado;
+    }
+
+    function buildOutput({
+        estructuraBase,
+        contexto,
+        intencion,
+        persona1,
+        persona2 = [],
+        datosEmisor,
+        datosReceptor = []
+    } = {}) {
+
+        const resultado = clone(estructuraBase);
+        const nombreEmisor = persona1?.nombre || persona1?.id || "";
+
+        window.pathResolver?.setByPath?.(
             resultado,
-            path,
-            value
+            "contexto_sistema.intencion_detectada",
+            intencion
         );
 
-    }
+        // Mapear Entidades Cruzadas (Múltiples Receptores 0 a N)
+        const entidadesCruzadas = {
+            [nombreEmisor]: datosEmisor
+        };
 
-    return resultado;
+        for (var i = 0; i < persona2.length; i++) {
+            var persona = persona2[i];
+            var nombreReceptor = persona?.nombre || persona?.id || "";
 
-}
+            if (!nombreReceptor) continue;
 
-function buildOutput({
+            entidadesCruzadas[nombreReceptor] = datosReceptor[i] || {};
+        }
 
-    estructuraBase,
-    contexto,
-    intencion,
-    persona1,
-<<<<<<< HEAD
-    persona2,
-    datosEmisor,
-    datosReceptor
-
-} = {}){
-
-    const resultado =
-        structuredClone(
-=======
-    persona2 = [],
-    datosEmisor,
-    datosReceptor = []
-
-} = {}) {
-
-    const resultado =
-        clone(
->>>>>>> f1df6f9748708a0da2576323590b20fb6ff833ee
-            estructuraBase
+        window.pathResolver?.setByPath?.(
+            resultado,
+            "datos_encontrados.entidades_cruzadas",
+            entidadesCruzadas
         );
 
-    const nombreEmisor =
-        persona1?.nombre ||
-        persona1?.id ||
-        "";
-
-<<<<<<< HEAD
-    const nombreReceptor =
-        persona2?.nombre ||
-        persona2?.id ||
-        "";
-
-=======
->>>>>>> f1df6f9748708a0da2576323590b20fb6ff833ee
-    window.pathResolver.setByPath(
-        resultado,
-        "contexto_sistema.intencion_detectada",
-        intencion
-    );
-
-<<<<<<< HEAD
-    window.pathResolver.setByPath(
-        resultado,
-        "datos_encontrados.entidades_cruzadas",
-        {
-            [nombreEmisor]: datosEmisor,
-            [nombreReceptor]: datosReceptor
-        }
-    );
-
-    window.pathResolver.setByPath(
-        resultado,
-        "instruccion_usuario",
-        `${nombreEmisor} ${intencion} ${nombreReceptor}`
-=======
-    //--------------------------------------------------
-    // ENTIDADES CRUZADAS
-    //--------------------------------------------------
-
-    const entidadesCruzadas = {
-
-        [nombreEmisor]:
-            datosEmisor
-
-    };
-
-    for (
-        let i = 0;
-        i < persona2.length;
-        i++
-    ) {
-
-        const persona =
-            persona2[i];
-
-        const nombreReceptor =
-            persona?.nombre ||
-            persona?.id ||
-            "";
-
-        if (!nombreReceptor) {
-
-            continue;
-
-        }
-
-        entidadesCruzadas[
-            nombreReceptor
-        ] =
-            datosReceptor[i] || {};
-
-    }
-
-    window.pathResolver.setByPath(
-        resultado,
-        "datos_encontrados.entidades_cruzadas",
-        entidadesCruzadas
-    );
-
-    //--------------------------------------------------
-    // INSTRUCCIÓN
-    //--------------------------------------------------
-
-    const nombresReceptores =
-        persona2
-            .map(
-                persona =>
-                    persona?.nombre ||
-                    persona?.id ||
-                    ""
-            )
+        // Construir Instrucción Consolidada (Sin espacios extra si persona2 está vacía)
+        const nombresReceptores = persona2
+            .map(function (p) { return p?.nombre || p?.id || ""; })
             .filter(Boolean);
 
-    window.pathResolver.setByPath(
-        resultado,
-        "instruccion_usuario",
-        [
-            nombreEmisor,
-            intencion,
-            ...nombresReceptores
-        ].join(" ")
->>>>>>> f1df6f9748708a0da2576323590b20fb6ff833ee
-    );
+        const partesInstruccion = [nombreEmisor, intencion].concat(nombresReceptores);
 
-    log(
-        "Resultado construido:",
-        resultado
-    );
-
-<<<<<<< HEAD
-=======
-    //--------------------------------------------------
-    // DESCARGA
-    //--------------------------------------------------
-
-    if (
-        window.jsonDownloader?.download
-    ) {
-
-        window.jsonDownloader.download({
-
-            json:
-                resultado,
-
-            fileName:
-                "resultado.json"
-
-        });
-
-    }
-    else {
-
-        warn(
-            "jsonDownloader no está disponible en window."
+        window.pathResolver?.setByPath?.(
+            resultado,
+            "instruccion_usuario",
+            partesInstruccion.join(" ")
         );
 
+        log("Resultado de contexto construido correctamente:", resultado);
+
+        // Descarga opcional del JSON resultante
+        if (window.jsonDownloader?.download) {
+            window.jsonDownloader.download({
+                json: resultado,
+                fileName: "resultado.json"
+            });
+        } else {
+            warn("jsonDownloader no está disponible en window.");
+        }
+
+        return resultado;
     }
 
->>>>>>> f1df6f9748708a0da2576323590b20fb6ff833ee
-    return resultado;
+    log(`${FILE} inicializado correctamente.`);
 
-}
-
-<<<<<<< HEAD
-=======
-function clone(value) {
-
-    if (
-        value === null ||
-        value === undefined
-    ) {
-        return value;
-    }
-
-    return JSON.parse(
-        JSON.stringify(
-            value
-        )
-    );
-
-}
->>>>>>> f1df6f9748708a0da2576323590b20fb6ff833ee
+})();

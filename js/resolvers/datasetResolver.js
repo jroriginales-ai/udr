@@ -1,172 +1,81 @@
 // ======================================================
-// 📁 js/resolvers/datasetResolver.js
+// 📁 js/resolvers/datasetResolver.js (Safari Catalina Ready)
 // ======================================================
 
-(function(){
+(function () {
 
     const FILE = "datasetResolver.js";
-
-    const log   = (...a)=>window.logger?.info?.(FILE,...a);
-    const error = (...a)=>window.logger?.error?.(FILE,...a);
+    const log = (...a) => window.logger?.info?.(FILE, ...a);
 
     window.datasetResolver = {
-
         execute,
         resolve
-
     };
 
-// ======================================================
-// EXECUTE
-// ======================================================
+    // ======================================================
+    // EXECUTE (Paso del Pipeline / Resolver)
+    // ======================================================
+    async function execute({ context = {} } = {}) {
+        // Resuelve todos los datasets y los asigna al contexto global
+        context.datasets = await resolve({ context });
 
-async function execute({
+        log("Datasets resueltos correctamente:", Object.keys(context.datasets));
 
-    context = {}
-
-} = {}){
-
-    try{
-
-        context.definition = resolve({
-
-            context
-
-        });
-
-        return context.definition;
-
+        return context.datasets;
     }
-    catch(e){
 
-        error(
-            "execute:",
-            e
+    // ======================================================
+    // RESOLVE (Paralelización asíncrona)
+    // ======================================================
+    async function resolve({ context = {} } = {}) {
+        const definitions = context?.definition?.datasets || [];
+        const datasets = Object.create(null);
+
+        if (!Array.isArray(definitions) || definitions.length === 0) {
+            log("No hay datasets definidos en 'definition.datasets'.");
+            return datasets;
+        }
+
+        // 1. Resolver todos los datasets y schemas en paralelo
+        const resolvedList = await Promise.all(
+            definitions.map(async function (def) {
+                if (!def || !def.id) return null;
+
+                // Resolución del valor de datos usando dataResolver
+                const value = await window.dataResolver?.resolve?.({
+                    root: context.root,
+                    jsonPath: def.path
+                });
+
+                // Obtención del esquema asociado usando schemaResolver
+                const schema = await window.schemaResolver?.getSchema?.({
+                    name: def.schema,
+                    context: context
+                });
+
+                return {
+                    id: def.id,
+                    dataset: {
+                        id: def.id,
+                        definition: def,
+                        value: value !== undefined ? value : null,
+                        schema: schema || []
+                    }
+                };
+            })
         );
 
-        throw e;
-
-    }
-
-}
-
-    // ==================================================
-    // RESOLVE
-    // ==================================================
-
-    async function resolve({
-
-        context = {}
-    
-    } = {}){
-    
-        try{
-    
-            const definitions =
-    
-                context
-                ?.definition
-                ?.datasets || [];
-    
-            const datasets =
-                Object.create(null);
-    
-            //------------------------------------------------
-            // BUILD DATASETS
-            //------------------------------------------------
-    
-            for(const definition of definitions){
-    
-                // console.log(
-                //     "ROOT EXISTS",
-                //     !!context.root
-                // );
-                
-                // console.log(
-                //     "PATH",
-                //     definition.path
-                // );
-                
-                // console.log(
-                //     "DATA RESOLVER",
-                //     window.dataResolver
-                // );
-                
-                const value =
-                    await window
-                        .dataResolver
-                        ?.resolve({
-                
-                            root: context.root,
-                
-                            jsonPath: definition.path
-                
-                        });
-                
-                // console.log(
-                //     "VALUE",
-                //     value
-                // );
-    
-                const schema =
-                    await window
-                        .schemaResolver
-                        ?.getSchema({
-    
-                            name:
-                                definition.schema,
-    
-                            context
-    
-                        });
-    
-                        // console.log(
-                        //     "DATASET BUILD",
-                        //     definition.id,
-                        //     value
-                        // );
-
-                datasets[
-                    definition.id
-                ] = {
-    
-                    id:
-                        definition.id,
-    
-                    definition,
-    
-                    value,
-    
-                    schema
-    
-                };
-    
+        // 2. Mapear los resultados resueltos al diccionario de datasets
+        for (var i = 0; i < resolvedList.length; i++) {
+            var item = resolvedList[i];
+            if (item && item.id) {
+                datasets[item.id] = item.dataset;
             }
-    
-            context.datasets =
-                datasets;
-    
-            return datasets;
-    
         }
-        catch(e){
-    
-            error(
-                "resolve:",
-                e
-            );
-    
-            context.datasets =
-                Object.create(null);
-    
-            return context.datasets;
-    
-        }
-    
-    }
-    
-    // ==================================================
 
-    log("datasetResolver inicializado.");
+        return datasets;
+    }
+
+    log(`${FILE} inicializado correctamente.`);
 
 })();
