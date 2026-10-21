@@ -1,5 +1,6 @@
 # Ignora todo el contenido de Grok
 Grok/**
+!Grok/normav2.json
 
 # Ignora todo el contenido de data
 data/**
