@@ -5,6 +5,7 @@ Grok/**
 data/**
 !data/norma_completo.json
 !data/prueba.txt
+!data/app-config.json
 
 # Excepción: SÍ rastrear la carpeta de plantillas y sus archivos
 !data/templates/

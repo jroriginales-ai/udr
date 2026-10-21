@@ -1,0 +1,1120 @@
+{
+    "definition": {
+      "startup": {
+        "layout": "layout",
+        "meta_schema": "_meta",
+        "profiles": {
+          "runtime": {
+            "pipeline": [
+              {
+                "name": "definitionResolver"
+              },
+              {
+                "name": "datasetResolver"
+              },
+              {
+                "name": "schemaResolver"
+              },
+              {
+                "name": "relationResolver"
+              },
+              {
+                "name": "layoutResolver"
+              },
+              {
+                "name": "render"
+              }
+            ]
+          },
+          "selector": {
+            "pipeline": [
+              {
+                "name": "definitionResolver"
+              },
+              {
+                "name": "datasetResolver"
+              },
+              {
+                "name": "schemaResolver"
+              },
+              {
+                "name": "relationResolver"
+              },
+              {
+                "name": "layoutResolver"
+              },
+              {
+                "name": "render"
+              }
+            ]
+          },
+          "runtime_backup": {
+            "pipeline": [
+              {
+                "name": "definitionResolver"
+              },
+              {
+                "name": "datasetResolver"
+              },
+              {
+                "name": "schemaResolver"
+              },
+              {
+                "name": "validateSchemas"
+              },
+              {
+                "name": "relationResolver"
+              },
+              {
+                "name": "layoutResolver"
+              },
+              {
+                "name": "render"
+              }
+            ]
+          },
+          "relation": {
+            "pipeline": [
+              {
+                "name": "definitionResolver"
+              },
+              {
+                "name": "datasetResolver"
+              },
+              {
+                "name": "schemaResolver"
+              },
+              {
+                "name": "validateSchemas"
+              },
+              {
+                "name": "layoutResolver"
+              }
+            ]
+          },
+          "update": {
+            "pipeline": [
+              {
+                "name": "definitionResolver"
+              },
+              {
+                "name": "datasetResolver"
+              },
+              {
+                "name": "schemaResolver"
+              },
+              {
+                "name": "updateProgram"
+              }
+            ]
+          },
+          "update_backup": {
+            "pipeline": [
+              {
+                "name": "definitionResolver"
+              },
+              {
+                "name": "datasetResolver"
+              },
+              {
+                "name": "schemaResolver"
+              },
+              {
+                "name": "validateSchemas"
+              },
+              {
+                "name": "updateProgram"
+              }
+            ]
+          }
+        },
+        "registry": {
+          "programs": [
+            {
+              "name": "definitionResolver",
+              "file": "js/resolvers/definitionResolver.js"
+            },
+            {
+              "name": "datasetResolver",
+              "file": "js/resolvers/datasetResolver.js"
+            },
+            {
+              "name": "schemaResolver",
+              "file": "js/resolvers/schemaResolver.js"
+            },
+            {
+              "name": "validateSchemas",
+              "file": "js/runtime/validateSchemas.js"
+            },
+            {
+              "name": "relationResolver",
+              "file": "js/resolvers/relationResolver.js"
+            },
+            {
+              "name": "layoutResolver",
+              "file": "js/resolvers/layoutResolver.js"
+            },
+            {
+              "name": "updateProgram",
+              "file": "js/runtime/updateProgram.js"
+            },
+            {
+              "name": "render",
+              "file": "js/runtime/render.js"
+            }
+          ],
+          "fieldRenderers": [
+            {
+              "name": "arrayFieldRenderer",
+              "file": "js/fields/arrayFieldRenderer.js"
+            },
+            {
+              "name": "audioFieldRenderer",
+              "file": "js/fields/audioFieldRenderer.js"
+            },
+            {
+              "name": "booleanFieldRenderer",
+              "file": "js/fields/booleanFieldRenderer.js"
+            },
+            {
+              "name": "dateFieldRenderer",
+              "file": "js/fields/dateFieldRenderer.js"
+            },
+            {
+              "name": "documentFieldRenderer",
+              "file": "js/fields/documentFieldRenderer.js"
+            },
+            {
+              "name": "galleryFieldRenderer",
+              "file": "js/fields/galleryFieldRenderer.js"
+            },
+            {
+              "name": "htmlFieldRenderer",
+              "file": "js/fields/htmlFieldRenderer.js"
+            },
+            {
+              "name": "iconFieldRenderer",
+              "file": "js/fields/iconFieldRenderer.js"
+            },
+            {
+              "name": "imageFieldRenderer",
+              "file": "js/fields/imageFieldRenderer.js"
+            },
+            {
+              "name": "numberFieldRenderer",
+              "file": "js/fields/numberFieldRenderer.js"
+            },
+            {
+              "name": "objectFieldRenderer",
+              "file": "js/fields/objectFieldRenderer.js"
+            },
+            {
+              "name": "textareaFieldRenderer",
+              "file": "js/fields/textareaFieldRenderer.js"
+            },
+            {
+              "name": "textFieldRenderer",
+              "file": "js/fields/textFieldRenderer.js"
+            },
+            {
+              "name": "videoFieldRenderer",
+              "file": "js/fields/videoFieldRenderer.js"
+            }
+          ],
+          "layoutRenderers": [
+            {
+              "name": "detail",
+              "file": "js/layouts/detailLayout.js"
+            },
+            {
+              "name": "edit",
+              "file": "js/layouts/editLayout.js"
+            },
+            {
+              "name": "page",
+              "file": "js/layouts/pageLayout.js"
+            },
+            {
+              "name": "list",
+              "file": "js/layouts/listLayout.js"
+            },
+            {
+              "name": "selector",
+              "file": "js/layouts/selectorLayout.js"
+            },
+            {
+              "name": "object",
+              "file": "js/layouts/objectLayout.js"
+            },
+            {
+              "name": "navigation",
+              "file": "js/layouts/navigationLayout.js"
+            },
+            {
+              "name": "tabs",
+              "file": "js/layouts/tabsLayout.js"
+            }
+          ]
+        }
+      },
+      "datasets": [
+        {
+          "id": "data",
+          "path": "data",
+          "schema": "catalogo",
+          "container": "content-view"
+        },
+        {
+          "id": "navigation",
+          "path": "navigation_header",
+          "schema": "navigation_header",
+          "container": "navigation-bar"
+        },
+        {
+          "id": "meta",
+          "path": "meta.data",
+          "schema": "meta_campos",
+          "container": "meta-view"
+        },
+        {
+          "id": "layout",
+          "path": "layout",
+          "schema": "layout_config"
+        }
+      ]
+    },
+    "meta": {
+      "data": {
+        "id": "multiverso-runtime",
+        "nombre": "Mapa del Multiverso",
+        "descripcion": "Runtime declarativo universal basado completamente en JSON",
+        "objetivo": "Explorar universos, categorías, películas, series y relaciones",
+        "version": "4.0.1",
+        "fecha_creacion": "2026-05-14",
+        "fecha_modificacion": "2026-05-26",
+        "usuario": "Jose",
+        "source": {
+          "file": "app-config.json",
+          "path": "data"
+        }
+      },
+      "schemas": {
+        "_meta": {
+          "description": "Definición base para todos los campos",
+          "properties": {
+            "campo": {
+              "tipo": "text",
+              "obligatorio": true
+            },
+            "label": {
+              "tipo": "text",
+              "obligatorio": false
+            },
+            "tipo": {
+              "tipo": "text",
+              "obligatorio": true
+            },
+            "visible": {
+              "tipo": "boolean",
+              "obligatorio": false
+            },
+            "required": {
+              "tipo": "boolean",
+              "obligatorio": false
+            },
+            "renderer": {
+              "tipo": "text",
+              "obligatorio": true
+            },
+            "fields": {
+              "tipo": "array",
+              "obligatorio": false
+            }
+          }
+        },
+        "catalogo": [
+          {
+            "campo": "titulo",
+            "label": "Título",
+            "tipo": "text",
+            "renderer": "textFieldRenderer"
+          },
+          {
+            "campo": "descripcion",
+            "label": "Descripción",
+            "tipo": "textarea",
+            "renderer": "textFieldRenderer"
+          },
+          {
+            "campo": "icono",
+            "label": "Icono",
+            "renderer": "textFieldRenderer",
+            "tipo": "object",
+            "fields": [
+              {
+                "campo": "tipo",
+                "label": "Tipo",
+                "tipo": "text",
+                "renderer": "textFieldRenderer"
+              },
+              {
+                "campo": "valor",
+                "label": "Valor",
+                "tipo": "text",
+                "renderer": "textFieldRenderer"
+              },
+              {
+                "campo": "source",
+                "label": "Source",
+                "tipo": "object",
+                "renderer": "textFieldRenderer",
+                "fields": [
+                  {
+                    "campo": "file",
+                    "label": "File",
+                    "tipo": "text",
+                    "renderer": "textFieldRenderer"
+                  },
+                  {
+                    "campo": "path",
+                    "label": "Path",
+                    "tipo": "text",
+                    "renderer": "textFieldRenderer"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "campo": "navigation",
+            "label": "Navegación",
+            "tipo": "object",
+            "renderer": "textFieldRenderer",
+            "fields": [
+              {
+                "campo": "html",
+                "label": "HTML",
+                "tipo": "text",
+                "renderer": "textFieldRenderer"
+              },
+              {
+                "campo": "source",
+                "label": "Source",
+                "tipo": "object",
+                "renderer": "textFieldRenderer",
+                "fields": [
+                  {
+                    "campo": "file",
+                    "label": "File",
+                    "tipo": "text",
+                    "renderer": "textFieldRenderer"
+                  },
+                  {
+                    "campo": "path",
+                    "label": "Path",
+                    "tipo": "text",
+                    "renderer": "textFieldRenderer"
+                  }
+                ]
+              },
+              {
+                "campo": "parameters",
+                "label": "Parameters",
+                "tipo": "object",
+                "renderer": "textFieldRenderer",
+                "fields": [
+                  {
+                    "campo": "profile",
+                    "label": "Profile",
+                    "tipo": "text",
+                    "renderer": "textFieldRenderer"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "campo": "tipos_media",
+            "label": "Tipos Media",
+            "tipo": "text",
+            "renderer": "textFieldRenderer",
+            "relation": {
+              "html": "index.html",
+              "source": {
+                "file": "tipos_media.json",
+                "path": "data/catalogos"
+              },
+              "where": {
+                "id": "{tipos_media}"
+              },
+              "displayField": "nombre"
+            },
+            "selector": {
+              "ui": "selector",
+              "mode": "multiple",
+              "profile": "selector"
+            }
+          },
+          {
+            "campo": "media",
+            "label": "local media",
+            "tipo": "array",
+            "renderer": "arrayFieldRenderer",
+            "fields": [
+              {
+                "campo": "label",
+                "label": "Label",
+                "tipo": "text",
+                "renderer": "textFieldRenderer"
+              },
+              {
+                "campo": "tipos_media",
+                "label": "Tipo Media",
+                "tipo": "text",
+                "renderer": "textFieldRenderer"
+              },
+              {
+                "campo": "source",
+                "label": "Source",
+                "tipo": "object",
+                "renderer": "textFieldRenderer",
+                "fields": [
+                  {
+                    "campo": "file",
+                    "label": "Archivo",
+                    "tipo": "text",
+                    "renderer": "textFieldRenderer"
+                  },
+                  {
+                    "campo": "path",
+                    "label": "Ruta",
+                    "tipo": "text",
+                    "renderer": "textFieldRenderer"
+                  }
+                ]
+              },
+              {
+                "campo": "navigation",
+                "label": "Navigation",
+                "tipo": "object",
+                "renderer": "textFieldRenderer",
+                "fields": [
+                  {
+                    "campo": "html",
+                    "label": "HTML",
+                    "tipo": "text",
+                    "renderer": "textFieldRenderer"
+                  },
+                  {
+                    "campo": "source",
+                    "label": "Source",
+                    "tipo": "object",
+                    "renderer": "textFieldRenderer",
+                    "fields": [
+                      {
+                        "campo": "file",
+                        "label": "File",
+                        "tipo": "text",
+                        "renderer": "textFieldRenderer"
+                      },
+                      {
+                        "campo": "path",
+                        "label": "Path",
+                        "tipo": "text",
+                        "renderer": "textFieldRenderer"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "meta_campos": [
+          {
+            "campo": "id",
+            "label": "ID",
+            "tipo": "text",
+            "renderer": "textFieldRenderer"
+          },
+          {
+            "campo": "nombre",
+            "label": "Nombre",
+            "tipo": "text",
+            "renderer": "textFieldRenderer"
+          },
+          {
+            "campo": "descripcion",
+            "label": "Descripción",
+            "tipo": "textarea",
+            "renderer": "textFieldRenderer"
+          },
+          {
+            "campo": "objetivo",
+            "label": "Objetivo",
+            "tipo": "textarea",
+            "renderer": "textFieldRenderer"
+          },
+          {
+            "campo": "version",
+            "label": "Versión",
+            "tipo": "text",
+            "renderer": "textFieldRenderer"
+          },
+          {
+            "campo": "fecha_creacion",
+            "label": "Fecha creación",
+            "tipo": "date",
+            "renderer": "textFieldRenderer"
+          },
+          {
+            "campo": "fecha_modificacion",
+            "label": "Fecha modificación",
+            "tipo": "date",
+            "renderer": "textFieldRenderer"
+          },
+          {
+            "campo": "usuario",
+            "label": "Usuario",
+            "tipo": "text",
+            "renderer": "textFieldRenderer"
+          }
+        ],
+        "navigation_header": [
+          {
+            "campo": "label",
+            "label": "Etiqueta",
+            "tipo": "text",
+            "renderer": "textFieldRenderer"
+          },
+          {
+            "campo": "items",
+            "label": "Items",
+            "tipo": "array",
+            "renderer": "arrayFieldRenderer",
+            "fields": [
+              {
+                "campo": "label",
+                "label": "Etiqueta",
+                "tipo": "text",
+                "renderer": "textFieldRenderer"
+              },
+              {
+                "campo": "navigation",
+                "label": "Navegación",
+                "tipo": "object",
+                "renderer": "objectFieldRenderer",
+                "fields": [
+                  {
+                    "campo": "html",
+                    "label": "HTML",
+                    "tipo": "text",
+                    "renderer": "textFieldRenderer"
+                  },
+                  {
+                    "campo": "source",
+                    "label": "Source",
+                    "tipo": "object",
+                    "renderer": "objectFieldRenderer",
+                    "fields": [
+                      {
+                        "campo": "file",
+                        "label": "Archivo",
+                        "tipo": "text",
+                        "renderer": "textFieldRenderer"
+                      },
+                      {
+                        "campo": "path",
+                        "label": "Ruta",
+                        "tipo": "text",
+                        "renderer": "textFieldRenderer"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "layout_config": [
+          {
+            "campo": "component",
+            "label": "Componente",
+            "tipo": "text",
+            "renderer": "textFieldRenderer"
+          },
+          {
+            "campo": "sections",
+            "label": "Secciones",
+            "tipo": "array",
+            "renderer": "arrayFieldRenderer",
+            "fields": [
+              {
+                "campo": "component",
+                "label": "Componente",
+                "tipo": "text",
+                "renderer": "textFieldRenderer"
+              },
+              {
+                "campo": "title",
+                "label": "Título",
+                "tipo": "text",
+                "renderer": "textFieldRenderer"
+              },
+              {
+                "campo": "mode",
+                "label": "Modo",
+                "tipo": "text",
+                "renderer": "textFieldRenderer"
+              },
+              {
+                "campo": "dataSource",
+                "label": "Fuente Datos",
+                "tipo": "text",
+                "renderer": "textFieldRenderer"
+              },
+              {
+                "campo": "schema",
+                "label": "Schema",
+                "tipo": "text",
+                "renderer": "textFieldRenderer"
+              }
+            ]
+          },
+          {
+            "campo": "tabs",
+            "label": "Pestañas",
+            "tipo": "array",
+            "renderer": "arrayFieldRenderer",
+            "fields": [
+              {
+                "campo": "label",
+                "label": "Etiqueta",
+                "tipo": "text",
+                "renderer": "textFieldRenderer"
+              },
+              {
+                "campo": "sections",
+                "label": "Secciones",
+                "tipo": "array",
+                "renderer": "arrayFieldRenderer",
+                "fields": [
+                  {
+                    "campo": "component",
+                    "label": "Componente",
+                    "tipo": "text",
+                    "renderer": "textFieldRenderer"
+                  },
+                  {
+                    "campo": "title",
+                    "label": "Título",
+                    "tipo": "text",
+                    "renderer": "textFieldRenderer"
+                  },
+                  {
+                    "campo": "mode",
+                    "label": "Modo",
+                    "tipo": "text",
+                    "renderer": "textFieldRenderer"
+                  },
+                  {
+                    "campo": "dataSource",
+                    "label": "Fuente Datos",
+                    "tipo": "text",
+                    "renderer": "textFieldRenderer"
+                  },
+                  {
+                    "campo": "schema",
+                    "label": "Schema",
+                    "tipo": "text",
+                    "renderer": "textFieldRenderer"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "navigation_header": {
+      "label": "Mapa del Multiverso",
+      "items": [
+        {
+          "label": "🏠 Inicio",
+          "navigation": {
+            "html": "index.html",
+            "source": {
+              "file": "app-config.json",
+              "path": "data"
+            },
+            "parameters": {
+              "profile": "runtime"
+            }
+          }
+        },
+        {
+          "label": "📚 Catálogo",
+          "navigation": {
+            "html": "index.html",
+            "source": {
+              "file": "catalogos.json",
+              "path": "data/catalogos"
+            },
+            "parameters": {
+              "profile": "runtime"
+            }
+          }
+        }
+      ]
+    },
+    "layout": {
+      "component": "page",
+      "sections": [
+        {
+          "component": "navigation",
+          "dataSource": "navigation",
+          "title": "Navigation",
+          "schema": "navigation",
+          "mode": "display"
+        },
+        {
+          "component": "tabs",
+          "tabs": [
+            {
+              "label": "🌐 Exploración",
+              "sections": [
+                {
+                  "component": "list",
+                  "mode": "display",
+                  "view": "Cards",
+                  "title": "Catálogo",
+                  "dataSource": "data",
+                  "schema": "catalogo",
+                  "fields": [
+                    {
+                      "campo": "icono",
+                      "fields": [
+                        {
+                          "campo": "tipo",
+                          "visible": "false"
+                        }
+                      ]
+                    },
+                    {
+                      "campo": "navigation",
+                      "visible": "false",
+                      "fields": [
+                        {
+                          "campo": "html",
+                          "visible": "false",
+                          "fields": [
+                            {
+                              "campo": "file",
+                              "visible": "false"
+                            },
+                            {
+                              "campo": "path",
+                              "visible": "false"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "campo": "media",
+                      "label": "Local Media",
+                      "tipo": "image",
+                      "renderer": "imageFieldRenderer",
+                      "columnWidth": "240px",
+                      "image": {
+                        "width": "128px",
+                        "height": "96px",
+                        "fit": "contain"
+                      },
+                      "fields": [
+                        {
+                          "campo": "navigation",
+                          "visible": "false",
+                          "fields": [
+                            {
+                              "campo": "html",
+                              "visible": "false"
+                            },
+                            {
+                              "campo": "source",
+                              "visible": "false",
+                              "fields": [
+                                {
+                                  "campo": "file",
+                                  "visible": "false"
+                                },
+                                {
+                                  "campo": "path",
+                                  "visible": "false"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "campo": "titulo"
+                    },
+                    {
+                      "campo": "tipos_media",
+                      "label": "Tipo de Media",
+                      "tipo": "text",
+                      "renderer": "textFieldRenderer",
+                      "fields": [
+                        {
+                          "campo": "media",
+                          "tipo": "image",
+                          "renderer": "imageFieldRenderer",
+                          "columnWidth": "240px",
+                          "image": {
+                            "width": "128px",
+                            "height": "96px",
+                            "fit": "contain"
+                          }
+                        },
+                        {
+                          "campo": "nombre",
+                          "renderer": "textFieldRenderer"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "label": "🧾 Detalle",
+              "sections": [
+                {
+                  "component": "detail",
+                  "title": "Detalle Principal",
+                  "mode": "display",
+                  "dataSource": "data",
+                  "schema": "catalogo"
+                }
+              ]
+            },
+            {
+              "label": "✏️ Editor",
+              "sections": [
+                {
+                  "component": "edit",
+                  "title": "Editor Runtime",
+                  "mode": "edit",
+                  "dataSource": "data",
+                  "schema": "catalogo"
+                }
+              ]
+            },
+            {
+              "label": "⚙️ Meta",
+              "sections": [
+                {
+                  "component": "edit",
+                  "title": "Información Runtime",
+                  "mode": "display",
+                  "dataSource": "meta",
+                  "schema": "meta_campos"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "data": [
+      {
+        "id": "10000",
+        "titulo": "Películas",
+        "descripcion": "Explorar catálogo de películas",
+        "icono": {
+          "tipo": "emoji",
+          "valor": "🎬"
+        },
+        "tipos_media": "4",
+        "navigation": {
+          "html": "index.html",
+          "source": {
+            "file": "peliculas.json",
+            "path": "data/peliculas"
+          },
+          "parameters": {
+            "profile": "runtime"
+          }
+        },
+        "media": [
+          {
+            "label": "poster",
+            "tipos_media": "image",
+            "source": {
+              "file": "movies.png",
+              "path": "media/images/UDR/08_Settings/catalogos/Cards/"
+            },
+            "navigation": {
+              "html": "image.html",
+              "source": {
+                "file": "poster.jpg",
+                "path": "media/images/peliculas/sci-fi/matrix"
+              }
+            }
+          },
+          {
+            "label": "poster2",
+            "tipos_media": "image",
+            "source": {
+              "file": "norma.png",
+              "path": "media/images/personas/familiares/norma"
+            },
+            "navigation": {
+              "html": "image.html",
+              "source": {
+                "file": "norma.png",
+                "path": "media/images/personas/familiares/norma"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "10001",
+        "titulo": "Series",
+        "descripcion": "Explorar catálogo de series",
+        "icono": {
+          "tipo": "emoji",
+          "valor": "📺"
+        },
+        "tipos_media": "1",
+        "navegacion": {
+          "html": "index.html",
+          "source": {
+            "file": "peliculas.json",
+            "path": "data/peliculas"
+          }
+        },
+        "media": [
+          {
+            "label": "poster",
+            "tipos_media": "image",
+            "source": {
+              "file": "series.png",
+              "path": "media/images/UDR/08_Settings/catalogos/Cards/"
+            }
+          }
+        ]
+      },
+      {
+        "id": "10002",
+        "titulo": "Comics",
+        "descripcion": "Explorar catálogo de comics",
+        "icono": {
+          "tipo": "emoji",
+          "valor": "📺"
+        },
+        "tipos_media": "1",
+        "navegacion": {
+          "html": "index.html",
+          "source": {
+            "file": "peliculas.json",
+            "path": "data/peliculas"
+          }
+        },
+        "media": [
+          {
+            "label": "poster",
+            "tipos_media": "image",
+            "source": {
+              "file": "poster.jpg",
+              "path": "media/images/UDR/08_Settings/catalogos/Cards/"
+            }
+          }
+        ]
+      },
+      {
+        "id": "10003",
+        "titulo": "Personas",
+        "descripcion": "Explorar catálogo de personas",
+        "icono": {
+          "tipo": "emoji",
+          "valor": "📺"
+        },
+        "tipos_media": "1",
+        "navegacion": {
+          "html": "index.html",
+          "source": {
+            "file": "peliculas.json",
+            "path": "data/peliculas"
+          }
+        },
+        "media": [
+          {
+            "label": "poster",
+            "tipos_media": "image",
+            "source": {
+              "file": "poster.jpg",
+              "path": "media/images/UDR/08_Settings/catalogos/Cards/"
+            }
+          }
+        ]
+      },
+      {
+        "id": "10004",
+        "titulo": "Libros",
+        "descripcion": "Explorar catálogo de libros y manuales",
+        "icono": {
+          "tipo": "emoji",
+          "valor": "📺"
+        },
+        "tipos_media": "1",
+        "navegacion": {
+          "html": "index.html",
+          "source": {
+            "file": "peliculas.json",
+            "path": "data/peliculas"
+          }
+        },
+        "media": [
+          {
+            "label": "poster",
+            "tipos_media": "image",
+            "source": {
+              "file": "poster.jpg",
+              "path": "media/images/UDR/08_Settings/catalogos/Cards/"
+            }
+          }
+        ]
+      },
+      {
+        "id": "10005",
+        "titulo": "Música",
+        "descripcion": "Explorar catálogo de música",
+        "icono": {
+          "tipo": "emoji",
+          "valor": "📺"
+        },
+        "tipos_media": "1",
+        "navegacion": {
+          "html": "index.html",
+          "source": {
+            "file": "peliculas.json",
+            "path": "data/peliculas"
+          }
+        },
+        "media": [
+          {
+            "label": "poster",
+            "tipos_media": "image",
+            "source": {
+              "file": "poster.jpg",
+              "path": "media/images/UDR/08_Settings/catalogos/Cards/"
+            }
+          }
+        ]
+      }
+    ]
+  }
